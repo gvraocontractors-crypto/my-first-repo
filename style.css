@@ -1,0 +1,95 @@
+:root {
+    --sidebar-bg: #1e1e2f;
+    --main-bg: #f4f6f9;
+    --card-bg: #ffffff;
+    --text-color: #333;
+}
+
+[data-bs-theme="dark"] {
+    --sidebar-bg: #0f0f1a;
+    --main-bg: #121212;
+    --card-bg: #1e1e1e;
+    --text-color: #f1f1f1;
+}
+
+body { 
+    background-color: var(--main-bg); 
+    color: var(--text-color); 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    transition: 0.3s; 
+}
+
+/* Sidebar Styling */
+.sidebar { 
+    width: 250px; 
+    height: 100vh; 
+    position: fixed; 
+    background: var(--sidebar-bg); 
+    transition: 0.3s; 
+    z-index: 1000;
+}
+.sidebar .nav-link { 
+    color: #8b8b9e; 
+    border-radius: 8px; 
+    margin-bottom: 5px; 
+    transition: 0.2s;
+}
+.sidebar .nav-link:hover, .sidebar .nav-link.active { 
+    background: #32324a; 
+    color: #fff !important; 
+}
+
+/* Main Content Area */
+.main-content { 
+    margin-left: 250px; 
+    padding: 20px; 
+    transition: 0.3s;
+}
+.navbar { background: var(--card-bg); }
+.card { background: var(--card-bg); color: var(--text-color); }
+
+/* Chart Containers */
+.chart-box { 
+    background: var(--card-bg); 
+    padding: 20px; 
+    border-radius: 12px; 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+    height: 100%;
+}
+
+/* KPI Cards */
+.kpi-card { 
+    padding: 20px; 
+    border-radius: 12px; 
+    color: white; 
+    position: relative; 
+    overflow: hidden; 
+    transition: transform 0.2s; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+}
+.kpi-card:hover { transform: translateY(-5px); }
+.kpi-card i { 
+    position: absolute; 
+    right: 20px; 
+    top: 20px; 
+    font-size: 3.5rem; 
+    opacity: 0.2; 
+}
+
+/* Gradients */
+.bg-gradient-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); }
+.bg-gradient-success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); }
+.bg-gradient-info { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); }
+
+/* Section Toggling */
+.view-section { display: none; animation: fadeIn 0.4s; }
+.view-section.active { display: block; }
+
+@keyframes fadeIn { 
+    from { opacity: 0; transform: translateY(10px); } 
+    to { opacity: 1; transform: translateY(0); } 
+}
+
+/* DataTable Dark Mode Fixes */
+[data-bs-theme="dark"] .table { color: #fff; }
+[data-bs-theme="dark"] .dt-buttons .btn { background: #333; color: white; border-color: #555;}
