@@ -1,12 +1,12 @@
 // REPLACE WITH YOUR ACTUAL GOOGLE APPS SCRIPT WEB APP URL
 const API_URL = 'https://script.google.com/macros/s/AKfycbyCTK9jF4_HBoZCw38NS_V9JnznU-EbFgx0V5k3ARs-w6gG6O3lYB4LvbztN1RE4EUc/exec';
 
+
 let globalExpenseData = [];
 let charts = {};
 let dataTable;
 
 $(document).ready(() => {
-    // Set today's date in the Add Expense form by default
     document.getElementById('date').valueAsDate = new Date();
     loadData();
 });
@@ -18,11 +18,7 @@ function switchView(viewId) {
     document.getElementById(viewId).classList.add('active');
     event.currentTarget.classList.add('active');
     
-    const titles = { 
-        'dashboard': 'Dashboard Analytics', 
-        'add-expense': 'Record New Expense', 
-        'reports': 'Reports & Exports' 
-    };
+    const titles = { 'dashboard': 'Dashboard Analytics', 'add-expense': 'Record New Expense', 'reports': 'Reports & Exports' };
     document.getElementById('pageTitle').textContent = titles[viewId];
 }
 
@@ -42,29 +38,51 @@ async function loadData() {
     try {
         const res = await fetch(API_URL);
         const data = await res.json();
+        
         if(data.status === "success") {
-            globalExpenseData = data.data;
+            
+            // --- AUTO-NORMALIZER: Fixes old data to match the new system ---
+            globalExpenseData = data.data.map(row => {
+                // 1. Standardize Company Names
+                if(row.Company) {
+                    let compUpper = row.Company.toString().toUpperCase();
+                    if(compUpper.includes('GVR')) row.Company = 'GVR Contractors';
+                    if(compUpper.includes('KRI')) row.Company = 'KRiyatech';
+                }
+                // 2. Clean Amounts (Removes commas, ₹, and text so math works)
+                if(row.Amount) {
+                    row.Amount = parseFloat(row.Amount.toString().replace(/[^0-9.-]+/g,"")) || 0;
+                }
+                return row;
+            });
+            // ----------------------------------------------------------------
+
             populateFilterDropdowns(); 
             applyFilters();            
+        } else {
+            showToast("Server returned an error.", "danger");
         }
     } catch (e) {
-        showToast("Failed to load data from server.", "danger");
+        showToast("Failed to connect to Google Sheets.", "danger");
     }
 }
 
-// Extract unique MMM-YY, Projects, and Users
+// Extract unique MMM-YY, Projects, and Users safely
 function populateFilterDropdowns() {
     const projects = new Set();
     const users = new Set();
-    const monthYearsMap = new Map(); // Used to sort MMM-YY chronologically
+    const monthYearsMap = new Map(); 
 
     globalExpenseData.forEach(row => {
-        if(row.Project) projects.add(row.Project.trim());
-        if(row.EnteredBy) users.add(row.EnteredBy.trim());
+        // Skip entirely blank rows
+        if(!row.Date && !row.Amount && !row.Company) return;
+
+        if(row.Project) projects.add(row.Project.toString().trim());
+        if(row.EnteredBy) users.add(row.EnteredBy.toString().trim());
+        
         if(row.Date) {
             const d = new Date(row.Date);
-            if(!isNaN(d)) {
-                // Creates format like "Jan-26"
+            if(!isNaN(d.getTime())) { 
                 const mmm_yy = d.toLocaleString('en-US', { month: 'short', year: '2-digit' }).replace(' ', '-');
                 const sortVal = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
                 monthYearsMap.set(mmm_yy, sortVal);
@@ -72,18 +90,15 @@ function populateFilterDropdowns() {
         }
     });
 
-    // Populate MMM-YY (Sorted Newest to Oldest)
     const sortedMonthYears = Array.from(monthYearsMap.keys()).sort((a, b) => monthYearsMap.get(b) - monthYearsMap.get(a));
     const mySelect = document.getElementById('filterMonthYear');
     mySelect.innerHTML = '<option value="All">All Months</option>';
     sortedMonthYears.forEach(my => mySelect.innerHTML += `<option value="${my}">${my}</option>`);
 
-    // Populate Projects
     const projSelect = document.getElementById('filterProject');
     projSelect.innerHTML = '<option value="All">All Projects</option>';
     Array.from(projects).sort().forEach(p => projSelect.innerHTML += `<option value="${p}">${p}</option>`);
 
-    // Populate Users
     const userSelect = document.getElementById('filterUser');
     userSelect.innerHTML = '<option value="All">All Users</option>';
     Array.from(users).sort().forEach(u => userSelect.innerHTML += `<option value="${u}">${u}</option>`);
@@ -98,7 +113,6 @@ function applyFilters() {
     const fProject = document.getElementById('filterProject').value;
     const fUser = document.getElementById('filterUser').value;
 
-    // Convert string dates to Date objects for precise comparison
     const startDate = startDateVal ? new Date(startDateVal) : null;
     if(startDate) startDate.setHours(0,0,0,0);
     
@@ -106,16 +120,21 @@ function applyFilters() {
     if(endDate) endDate.setHours(23,59,59,999);
 
     const filteredData = globalExpenseData.filter(row => {
-        const date = new Date(row.Date);
-        
-        // 1. Date Range Logic
-        let dateMatch = true;
-        if(startDate && date < startDate) dateMatch = false;
-        if(endDate && date > endDate) dateMatch = false;
+        if(!row.Date && !row.Amount && !row.Company) return false;
 
-        // 2. Dropdown Logic
-        const rowMonthYear = date.toLocaleString('en-US', { month: 'short', year: '2-digit' }).replace(' ', '-');
-        const myMatch = (fMonthYear === "All") || (rowMonthYear === fMonthYear);
+        const date = new Date(row.Date);
+        let dateMatch = true;
+        let myMatch = true;
+        
+        if(!isNaN(date.getTime())) {
+            if(startDate && date < startDate) dateMatch = false;
+            if(endDate && date > endDate) dateMatch = false;
+            const rowMonthYear = date.toLocaleString('en-US', { month: 'short', year: '2-digit' }).replace(' ', '-');
+            if(fMonthYear !== "All" && rowMonthYear !== fMonthYear) myMatch = false;
+        } else {
+            if(startDate || endDate || fMonthYear !== "All") dateMatch = false;
+        }
+
         const compMatch = (fCompany === "All") || (row.Company === fCompany);
         const projMatch = (fProject === "All") || (row.Project === fProject);
         const userMatch = (fUser === "All") || (row.EnteredBy === fUser);
@@ -135,18 +154,20 @@ function processDashboard(dataToProcess) {
 
     dataToProcess.forEach(row => {
         let amt = parseFloat(row.Amount) || 0;
-        let date = new Date(row.Date);
-        
         total += amt;
         
-        // Standardize company names for the pie chart
-        let compKey = row.Company.includes("GVR") ? "GVR Contractors" : "KRiyatech";
-        compData[compKey] = (compData[compKey] || 0) + amt;
+        if(row.Company) {
+            let compKey = row.Company.includes("GVR") ? "GVR Contractors" : "KRiyatech";
+            compData[compKey] = (compData[compKey] || 0) + amt;
+        }
         
-        payData[row.PaymentMode] = (payData[row.PaymentMode] || 0) + amt;
+        if(row.PaymentMode) payData[row.PaymentMode] = (payData[row.PaymentMode] || 0) + amt;
         
-        let monthStr = date.toLocaleString('default', { month: 'short', year: '2-digit' }).replace(' ', '-');
-        trendData[monthStr] = (trendData[monthStr] || 0) + amt;
+        const date = new Date(row.Date);
+        if(!isNaN(date.getTime())) {
+            let monthStr = date.toLocaleString('default', { month: 'short', year: '2-digit' }).replace(' ', '-');
+            trendData[monthStr] = (trendData[monthStr] || 0) + amt;
+        }
     });
 
     document.getElementById('kpi-total').textContent = `₹${total.toLocaleString('en-IN')}`;
@@ -157,7 +178,6 @@ function processDashboard(dataToProcess) {
 
 function renderCharts(comp, trend, pay) {
     const destroyChart = (name) => { if(charts[name]) charts[name].destroy(); }
-    
     Chart.defaults.color = 'var(--text-color)';
 
     destroyChart('comp');
@@ -185,20 +205,24 @@ function renderCharts(comp, trend, pay) {
 // --- DATATABLES LOGIC ---
 function renderTable(dataToProcess) {
     if(dataTable) dataTable.destroy(); 
-    
     const tbody = document.querySelector('#expenseTable tbody');
     
-    tbody.innerHTML = dataToProcess.map(row => `
+    tbody.innerHTML = dataToProcess.map(row => {
+        const d = new Date(row.Date);
+        const displayDate = isNaN(d.getTime()) ? '-' : d.toLocaleDateString('en-IN');
+        const displayAmt = isNaN(parseFloat(row.Amount)) ? 0 : parseFloat(row.Amount);
+        
+        return `
         <tr>
-            <td><small style="opacity: 0.7;">${row.ExpenseID}</small></td>
-            <td>${new Date(row.Date).toLocaleDateString('en-IN')}</td>
-            <td><strong>${row.Company}</strong></td>
-            <td>${row.Project}</td>
-            <td>${row.Description}</td>
-            <td class="fw-bold">₹${parseFloat(row.Amount).toLocaleString('en-IN')}</td>
+            <td><small style="opacity: 0.7;">${row.ExpenseID || '-'}</small></td>
+            <td>${displayDate}</td>
+            <td><strong>${row.Company || '-'}</strong></td>
+            <td>${row.Project || '-'}</td>
+            <td>${row.Description || '-'}</td>
+            <td class="fw-bold">₹${displayAmt.toLocaleString('en-IN')}</td>
             <td>${row.BillURL ? `<a href="${row.BillURL}" target="_blank" class="btn btn-sm btn-light glass-panel"><i class="fa-solid fa-file-invoice"></i> View</a>` : '<span style="opacity: 0.5;">-</span>'}</td>
         </tr>
-    `).join('');
+    `}).join('');
 
     dataTable = $('#expenseTable').DataTable({
         dom: '<"row mb-3"<"col-md-6"B><"col-md-6"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
@@ -246,7 +270,7 @@ document.getElementById('expenseForm').addEventListener('submit', async (e) => {
         await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'addExpense', payload: payload }) });
         showToast("Expense Recorded Successfully!", "success");
         e.target.reset(); 
-        document.getElementById('date').valueAsDate = new Date(); // Reset date to today
+        document.getElementById('date').valueAsDate = new Date(); 
         loadData(); 
     } catch(err) {
         showToast("Error submitting expense.", "danger");
