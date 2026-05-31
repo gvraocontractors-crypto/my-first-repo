@@ -1,163 +1,186 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Entry | G V Rao & Co</title>
+    <title>CorpFin | Expense Management</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f4f7f6; padding-top: 40px; }
-        .form-container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .header-title { color: #0d6efd; font-weight: bold; margin-bottom: 25px; text-align: center; }
-    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css" rel="stylesheet">
+    
+    <link href="style.css" rel="stylesheet">
 </head>
 <body>
 
-<div class="container">
-    <div class="form-container">
-        <h3 class="header-title">Record Expense</h3>
-        <form id="expenseForm">
-            
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">Date</label>
-                    <input type="date" class="form-control" id="date" required>
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">Company</label>
-                    <select class="form-select" id="company" required>
-                        <option value="GVR">GVR</option>
-                        <option value="Kriyatech">Kriyatech</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">Partner Name</label>
-                    <select class="form-select" id="partnerName" required>
-                        <option value="Gopinath">Gopinath</option>
-                        <option value="Satish">Satish</option>
-                        <option value="Partner 3">Partner 3</option>
-                    </select>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">Category</label>
-                    <input list="categoryList" class="form-control" id="category" placeholder="Select or type..." required>
-                    <datalist id="categoryList">
-                        <option value="O&M">
-                        <option value="New company registration">
-                        <option value="Salaries">
-                        <option value="Security Deposit">
-                    </datalist>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">Payment Mode</label>
-                    <select class="form-select" id="paymentMode" required>
-                        <option value="BANK TRANSFER">BANK TRANSFER</option>
-                        <option value="UPI">UPI</option>
-                        <option value="CASH">CASH</option>
-                    </select>
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">Amount (₹)</label>
-                    <input type="number" class="form-control" id="amount" placeholder="0.00" required>
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label fw-bold">Description</label>
-                <input type="text" class="form-control" id="description" placeholder="e.g., Printing of log books" required>
-            </div>
-
-            <div class="mb-4">
-                <label class="form-label fw-bold">Receipt Photo (Optional)</label>
-                <input type="file" class="form-control" id="receiptPhoto" accept="image/*,application/pdf">
-            </div>
-
-            <button type="submit" class="btn btn-primary w-100 py-2 fs-5" id="submitBtn">Submit Expense</button>
-            <div id="formMessage" class="mt-3 text-center fw-bold"></div>
-
-        </form>
+    <div class="sidebar d-flex flex-column p-3">
+        <h4 class="text-center text-white mb-4 fw-bold"><i class="fa-solid fa-bolt text-warning"></i> CorpFin</h4>
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+                <a href="#" class="nav-link active" onclick="switchView('dashboard')"><i class="fa-solid fa-chart-pie me-2"></i> Dashboard</a>
+            </li>
+            <li>
+                <a href="#" class="nav-link text-white" onclick="switchView('add-expense')"><i class="fa-solid fa-plus me-2"></i> Add Expense</a>
+            </li>
+            <li>
+                <a href="#" class="nav-link text-white" onclick="switchView('reports')"><i class="fa-solid fa-table me-2"></i> Reports & Exports</a>
+            </li>
+        </ul>
     </div>
-</div>
 
-<script>
-    // 1. PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbyCTK9jF4_HBoZCw38NS_V9JnznU-EbFgx0V5k3ARs-w6gG6O3lYB4LvbztN1RE4EUc/exec'; 
-    
-    const form = document.getElementById('expenseForm');
-    const messageEl = document.getElementById('formMessage');
-    const submitBtn = document.getElementById('submitBtn');
+    <div class="main-content">
+        
+        <nav class="navbar navbar-expand-lg mb-4 rounded shadow-sm px-3">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h4 fw-bold text-primary" id="pageTitle">Dashboard Analytics</span>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+                        <input type="text" id="currentUser" class="form-control" placeholder="Your Name" value="Admin User">
+                    </div>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="toggleTheme()" title="Toggle Dark Mode">
+                        <i class="fa-solid fa-moon"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
 
-    function generateID() {
-        return Math.random().toString(16).substring(2, 10);
-    }
+        <div class="toast-container position-fixed top-0 end-0 p-3">
+            <div id="appToast" class="toast align-items-center text-bg-primary border-0 shadow" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body fw-bold" id="toastMsg">Message here</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        </div>
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        submitBtn.disabled = true;
-        messageEl.className = "mt-3 text-center fw-bold text-primary";
-        messageEl.textContent = "Uploading and submitting...";
-
-        const fileInput = document.getElementById('receiptPhoto');
-        let fileBase64 = null;
-        let fileName = null;
-        let fileMimeType = null;
-
-        if (fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            fileName = file.name;
-            fileMimeType = file.type;
+        <div id="dashboard" class="view-section active">
             
-            fileBase64 = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result.split(',')[1]);
-                reader.onerror = error => reject(error);
-                reader.readAsDataURL(file);
-            });
-        }
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="kpi-card bg-gradient-primary">
+                        <i class="fa-solid fa-wallet"></i>
+                        <h6>Total Expenses</h6>
+                        <h3 id="kpi-total">₹0</h3>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="kpi-card bg-gradient-success">
+                        <i class="fa-solid fa-calendar-day"></i>
+                        <h6>This Month</h6>
+                        <h3 id="kpi-month">₹0</h3>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="kpi-card bg-gradient-info">
+                        <i class="fa-solid fa-building"></i>
+                        <h6>GVR vs KRiyatech</h6>
+                        <p class="mb-0 fw-bold fs-5" id="kpi-company">GVR: ₹0 | KRI: ₹0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-3">
+                <div class="col-md-4"><div class="chart-box"><canvas id="companyChart"></canvas></div></div>
+                <div class="col-md-8"><div class="chart-box"><canvas id="trendChart"></canvas></div></div>
+                <div class="col-md-6 mt-4"><div class="chart-box"><canvas id="paymentChart"></canvas></div></div>
+            </div>
+        </div>
 
-        const formData = {
-            id: generateID(),
-            date: document.getElementById('date').value,
-            company: document.getElementById('company').value, // NEW DATA FIELD
-            partnerName: document.getElementById('partnerName').value,
-            category: document.getElementById('category').value,
-            description: document.getElementById('description').value,
-            amount: document.getElementById('amount').value,
-            paymentMode: document.getElementById('paymentMode').value,
-            fileBase64: fileBase64,
-            fileName: fileName,
-            fileMimeType: fileMimeType
-        };
+        <div id="add-expense" class="view-section">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <form id="expenseForm">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="fw-bold text-secondary">Date *</label>
+                                <input type="date" class="form-control" id="date" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="fw-bold text-secondary">Company *</label>
+                                <select class="form-select" id="company" required>
+                                    <option value="GVR Contractors">GVR Contractors</option>
+                                    <option value="KRiyatech">KRiyatech</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="fw-bold text-secondary">Project / Site *</label>
+                                <input type="text" class="form-control" id="project" placeholder="e.g. Odalarevu Substation" required>
+                            </div>
+                            
+                            <div class="col-md-12">
+                                <label class="fw-bold text-secondary">Description *</label>
+                                <input type="text" class="form-control" id="description" placeholder="What was purchased or paid for?" required>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label class="fw-bold text-secondary">Amount (₹) *</label>
+                                <input type="number" class="form-control" id="amount" placeholder="0" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="fw-bold text-secondary">Payment Mode *</label>
+                                <select class="form-select" id="paymentMode" required>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="UPI">UPI</option>
+                                    <option value="Cash">Cash</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="fw-bold text-secondary">Transaction ID</label>
+                                <input type="text" class="form-control" id="transactionId" placeholder="Optional">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="fw-bold text-secondary">Upload Bill</label>
+                                <input type="file" class="form-control" id="billFile" accept="image/*,.pdf">
+                            </div>
+                        </div>
+                        <hr class="my-4">
+                        <button type="submit" class="btn btn-primary px-5 py-2 fw-bold" id="submitBtn">
+                            <i class="fa-solid fa-cloud-arrow-up me-2"></i> Submit Expense
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
 
-        fetch(scriptURL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify(formData)
-        })
-        .then(() => {
-            messageEl.className = "mt-3 text-center fw-bold text-success";
-            messageEl.textContent = "Expense recorded successfully!";
-            form.reset();
-            submitBtn.disabled = false;
-            setTimeout(() => messageEl.textContent = "", 4000);
-        })
-        .catch(error => {
-            messageEl.className = "mt-3 text-center fw-bold text-danger";
-            messageEl.textContent = "Error submitting expense.";
-            submitBtn.disabled = false;
-            console.error('Error!', error);
-        });
-    });
-</script>
+        <div id="reports" class="view-section">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="expenseTable" class="table table-hover table-striped w-100 align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Date</th>
+                                    <th>Company</th>
+                                    <th>Project</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Bill</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="app.js"></script>
 </body>
 </html>
