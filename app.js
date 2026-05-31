@@ -11,6 +11,13 @@ $(document).ready(() => {
     loadData();
 });
 
+// --- MOBILE SIDEBAR LOGIC ---
+function toggleSidebar() {
+    document.getElementById('mainSidebar').classList.toggle('mobile-active');
+    document.getElementById('mobileOverlay').classList.toggle('active');
+}
+
+// --- NAVIGATION LOGIC ---
 function switchView(viewId) {
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.sidebar .nav-link').forEach(el => el.classList.remove('active'));
@@ -20,6 +27,11 @@ function switchView(viewId) {
     
     const titles = { 'dashboard': 'Dashboard Analytics', 'add-expense': 'Record New Expense', 'reports': 'Reports & Exports' };
     document.getElementById('pageTitle').textContent = titles[viewId];
+    
+    // Auto-close sidebar on mobile after clicking a link
+    if (window.innerWidth <= 768) {
+        toggleSidebar();
+    }
 }
 
 function toggleTheme() {
@@ -36,12 +48,10 @@ function showToast(msg, type='primary') {
 
 async function loadData() {
     try {
-        console.log("Fetching data from Google Sheets...");
         const res = await fetch(API_URL);
         const data = await res.json();
         
         if(data.status === "success") {
-            console.log(`Successfully loaded ${data.data.length} rows.`);
             globalExpenseData = data.data.map(row => {
                 if(row.Company) {
                     let compUpper = row.Company.toString().toUpperCase();
@@ -57,16 +67,13 @@ async function loadData() {
             populateFilterDropdowns(); 
             applyFilters();            
         } else {
-            console.error("Server Error:", data.message);
             showToast("Server returned an error.", "danger");
         }
     } catch (e) {
-        console.error("Fetch failed:", e);
-        showToast("Failed to connect to Google Sheets.", "danger");
+        showToast("Failed to connect to server.", "danger");
     }
 }
 
-// Extract unique MMM-YY, Projects, and Users safely
 function populateFilterDropdowns() {
     const projects = new Set();
     const users = new Set();
@@ -102,7 +109,6 @@ function populateFilterDropdowns() {
     Array.from(users).sort().forEach(u => userSelect.innerHTML += `<option value="${u}">${u}</option>`);
 }
 
-// --- FILTERING LOGIC ---
 function applyFilters() {
     const startDateVal = document.getElementById('filterStartDate').value;
     const endDateVal = document.getElementById('filterEndDate').value;
@@ -144,7 +150,6 @@ function applyFilters() {
     renderTable(filteredData);
 }
 
-// --- DASHBOARD LOGIC ---
 function processDashboard(dataToProcess) {
     let total = 0;
     let compData = { "GVR Contractors": 0, "KRiyatech": 0 };
@@ -177,30 +182,36 @@ function processDashboard(dataToProcess) {
 function renderCharts(comp, trend, pay) {
     const destroyChart = (name) => { if(charts[name]) charts[name].destroy(); }
     Chart.defaults.color = 'var(--text-color)';
+    
+    // Base options for responsive charts
+    const responsiveOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } }
+    };
 
     destroyChart('comp');
     charts.comp = new Chart(document.getElementById('companyChart'), {
         type: 'doughnut', 
         data: { labels: Object.keys(comp), datasets: [{ data: Object.values(comp), backgroundColor: ['#a18cd1', '#fbc2eb'], borderWidth: 0 }] }, 
-        options: { plugins: { title: {display: true, text: 'Company Distribution'}}, cutout: '70%'}
+        options: { ...responsiveOptions, plugins: { ...responsiveOptions.plugins, title: {display: true, text: 'Company Distribution'}}, cutout: '70%'}
     });
 
     destroyChart('trend');
     charts.trend = new Chart(document.getElementById('trendChart'), {
         type: 'bar', 
         data: { labels: Object.keys(trend), datasets: [{ label: 'Filtered Spend', data: Object.values(trend), backgroundColor: 'rgba(255, 255, 255, 0.4)', borderColor: 'rgba(255,255,255,1)', borderWidth: 1, borderRadius: 5 }] }, 
-        options: { plugins: { title: {display: true, text: 'Monthly Trend'}}}
+        options: { ...responsiveOptions, plugins: { ...responsiveOptions.plugins, title: {display: true, text: 'Monthly Trend'}}}
     });
 
     destroyChart('pay');
     charts.pay = new Chart(document.getElementById('paymentChart'), {
         type: 'doughnut', 
         data: { labels: Object.keys(pay), datasets: [{ data: Object.values(pay), backgroundColor: ['#84fab0', '#8fd3f4', '#fccb90'], borderWidth: 0 }] }, 
-        options: { plugins: { title: {display: true, text: 'Payment Modes'}}, cutout: '70%'}
+        options: { ...responsiveOptions, plugins: { ...responsiveOptions.plugins, title: {display: true, text: 'Payment Modes'}}, cutout: '70%'}
     });
 }
 
-// --- DATATABLES LOGIC ---
 function renderTable(dataToProcess) {
     if(dataTable) dataTable.destroy(); 
     const tbody = document.querySelector('#expenseTable tbody');
@@ -213,22 +224,21 @@ function renderTable(dataToProcess) {
         return `
         <tr>
             <td><small style="opacity: 0.7;">${row.ExpenseID || '-'}</small></td>
-            <td>${displayDate}</td>
-            <td><strong>${row.Company || '-'}</strong></td>
+            <td class="text-nowrap">${displayDate}</td>
+            <td class="text-nowrap"><strong>${row.Company || '-'}</strong></td>
             <td>${row.Project || '-'}</td>
             <td>${row.Description || '-'}</td>
             <td class="fw-bold">₹${displayAmt.toLocaleString('en-IN')}</td>
-            <td>${row.BillURL ? `<a href="${row.BillURL}" target="_blank" class="btn btn-sm btn-light glass-panel"><i class="fa-solid fa-file-invoice"></i> View</a>` : '<span style="opacity: 0.5;">-</span>'}</td>
+            <td>${row.BillURL ? `<a href="${row.BillURL}" target="_blank" class="btn btn-sm btn-light glass-panel"><i class="fa-solid fa-file-invoice"></i></a>` : '-'}</td>
         </tr>
     `}).join('');
 
     dataTable = $('#expenseTable').DataTable({
-        dom: '<"row mb-3"<"col-md-6"B><"col-md-6"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+        dom: '<"row mb-3"<"col-12 col-md-6 mb-2"B><"col-12 col-md-6"f>>rt<"row mt-3"<"col-12 col-md-6"i><"col-12 col-md-6"p>>',
         buttons: [
             { extend: 'copy', className: 'btn btn-sm btn-light glass-panel' },
             { extend: 'csv', className: 'btn btn-sm btn-light glass-panel' },
-            { extend: 'excel', className: 'btn btn-sm btn-light glass-panel' },
-            { extend: 'pdf', className: 'btn btn-sm btn-light glass-panel' }
+            { extend: 'excel', className: 'btn btn-sm btn-light glass-panel' }
         ],
         order: [[1, 'desc']], 
         pageLength: 8, 
@@ -236,7 +246,6 @@ function renderTable(dataToProcess) {
     });
 }
 
-// --- FORM SUBMISSION LOGIC ---
 document.getElementById('expenseForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
@@ -260,7 +269,7 @@ document.getElementById('expenseForm').addEventListener('submit', async (e) => {
         amount: document.getElementById('amount').value,
         paymentMode: document.getElementById('paymentMode').value, 
         transactionId: document.getElementById('transactionId').value,
-        enteredBy: document.getElementById('enteredBy').value, // <--- GRABS FROM DROPDOWN NOW
+        enteredBy: document.getElementById('enteredBy').value, 
         fileBase64, fileName, fileMimeType
     };
 
