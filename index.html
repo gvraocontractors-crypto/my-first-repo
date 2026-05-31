@@ -13,7 +13,6 @@
 </head>
 <body>
 
-    <!-- Sidebar -->
     <div class="sidebar glass-panel d-flex flex-column p-3">
         <h4 class="text-center mb-4 fw-bold mt-2"><i class="fa-solid fa-bolt text-warning"></i> CorpFin</h4>
         <ul class="nav nav-pills flex-column mb-auto">
@@ -29,10 +28,8 @@
         </ul>
     </div>
 
-    <!-- Main Content -->
     <div class="main-content">
         
-        <!-- Navbar -->
         <nav class="navbar glass-panel navbar-expand-lg mb-4 px-4 py-3">
             <div class="container-fluid">
                 <span class="navbar-brand mb-0 h4 fw-bold" id="pageTitle">Dashboard Analytics</span>
@@ -48,7 +45,6 @@
             </div>
         </nav>
 
-        <!-- Toast Notifications -->
         <div class="toast-container position-fixed top-0 end-0 p-3">
             <div id="appToast" class="toast align-items-center text-bg-primary border-0 shadow glass-panel" role="alert">
                 <div class="d-flex">
@@ -58,13 +54,11 @@
             </div>
         </div>
 
-        <!-- 1. VIEW: DASHBOARD -->
         <div id="dashboard" class="view-section active">
             
-            <!-- GLOBAL FILTERS -->
             <div class="glass-panel p-3 mb-4">
                 <div class="row g-2">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label text-muted small fw-bold mb-1"><i class="fa-solid fa-calendar me-1"></i> Month</label>
                         <select class="form-select form-select-sm glass-panel" id="filterMonth" onchange="applyFilters()">
                             <option value="All">All Months</option>
@@ -75,6 +69,12 @@
                             <option value="9">September</option><option value="10">October</option>
                             <option value="11">November</option><option value="12">December</option>
                         </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small fw-bold mb-1"><i class="fa-solid fa-calendar-days me-1"></i> Year</label>
+                        <select class="form-select form-select-sm glass-panel" id="filterYear" onchange="applyFilters()">
+                            <option value="All">All Years</option>
+                            </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label text-muted small fw-bold mb-1"><i class="fa-solid fa-building me-1"></i> Company</label>
@@ -88,20 +88,17 @@
                         <label class="form-label text-muted small fw-bold mb-1"><i class="fa-solid fa-helmet-safety me-1"></i> Project</label>
                         <select class="form-select form-select-sm glass-panel" id="filterProject" onchange="applyFilters()">
                             <option value="All">All Projects</option>
-                            <!-- Populated by JS -->
-                        </select>
+                            </select>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label text-muted small fw-bold mb-1"><i class="fa-solid fa-user-pen me-1"></i> Entered By</label>
+                    <div class="col-md-2">
+                        <label class="form-label text-muted small fw-bold mb-1"><i class="fa-solid fa-user-pen me-1"></i> User</label>
                         <select class="form-select form-select-sm glass-panel" id="filterUser" onchange="applyFilters()">
-                            <option value="All">All Users</option>
-                            <!-- Populated by JS -->
-                        </select>
+                            <option value="All">All</option>
+                            </select>
                     </div>
                 </div>
             </div>
 
-            <!-- KPI Cards -->
             <div class="row g-3 mb-4">
                 <div class="col-md-6">
                     <div class="kpi-card glass-panel">
@@ -119,7 +116,6 @@
                 </div>
             </div>
             
-            <!-- Charts -->
             <div class="row g-3">
                 <div class="col-md-4"><div class="chart-box glass-panel"><canvas id="companyChart"></canvas></div></div>
                 <div class="col-md-8"><div class="chart-box glass-panel"><canvas id="trendChart"></canvas></div></div>
@@ -127,7 +123,6 @@
             </div>
         </div>
 
-        <!-- 2. VIEW: ADD EXPENSE FORM -->
         <div id="add-expense" class="view-section">
             <div class="card glass-panel border-0">
                 <div class="card-body p-4">
@@ -184,12 +179,10 @@
             </div>
         </div>
 
-        <!-- 3. VIEW: REPORTS & EXPORTS -->
         <div id="reports" class="view-section">
             <div class="card glass-panel border-0">
                 <div class="card-body">
                     <div class="table-responsive">
-                        <!-- Pagination is handled automatically by DataTables -->
                         <table id="expenseTable" class="table table-hover w-100 align-middle">
                             <thead>
                                 <tr>
@@ -203,8 +196,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Automatically populated -->
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
