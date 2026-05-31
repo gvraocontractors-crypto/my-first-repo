@@ -25,6 +25,16 @@
                 </div>
                 
                 <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Company</label>
+                    <select class="form-select" id="company" required>
+                        <option value="GVR">GVR</option>
+                        <option value="Kriyatech">Kriyatech</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">Partner Name</label>
                     <select class="form-select" id="partnerName" required>
                         <option value="Gopinath">Gopinath</option>
@@ -32,9 +42,7 @@
                         <option value="Partner 3">Partner 3</option>
                     </select>
                 </div>
-            </div>
 
-            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">Category</label>
                     <input list="categoryList" class="form-control" id="category" placeholder="Select or type..." required>
@@ -45,7 +53,9 @@
                         <option value="Security Deposit">
                     </datalist>
                 </div>
+            </div>
 
+            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">Payment Mode</label>
                     <select class="form-select" id="paymentMode" required>
@@ -54,11 +64,11 @@
                         <option value="CASH">CASH</option>
                     </select>
                 </div>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label fw-bold">Amount (₹)</label>
-                <input type="number" class="form-control" id="amount" placeholder="0.00" required>
+                
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Amount (₹)</label>
+                    <input type="number" class="form-control" id="amount" placeholder="0.00" required>
+                </div>
             </div>
 
             <div class="mb-3">
@@ -86,7 +96,6 @@
     const messageEl = document.getElementById('formMessage');
     const submitBtn = document.getElementById('submitBtn');
 
-    // Generates an ID like "deafbb3f" to match your screenshot
     function generateID() {
         return Math.random().toString(16).substring(2, 10);
     }
@@ -118,6 +127,7 @@
         const formData = {
             id: generateID(),
             date: document.getElementById('date').value,
+            company: document.getElementById('company').value, // NEW DATA FIELD
             partnerName: document.getElementById('partnerName').value,
             category: document.getElementById('category').value,
             description: document.getElementById('description').value,
