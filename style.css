@@ -17,11 +17,12 @@ body {
     background-attachment: fixed;
     color: var(--text-color); 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-    transition: 0.3s; 
+    transition: background 0.3s, color 0.3s; 
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
-/* --- GLASSMORPHISM UTILITY --- */
+/* Glassmorphism Utility */
 .glass-panel {
     background: var(--glass-bg);
     backdrop-filter: blur(12px);
@@ -36,10 +37,13 @@ body {
     width: 250px; 
     height: 100vh; 
     position: fixed; 
-    transition: 0.3s; 
-    z-index: 1000;
+    top: 0;
+    left: 0;
+    transition: transform 0.3s ease; 
+    z-index: 1050;
     border-right: 1px solid var(--glass-border);
     border-radius: 0 16px 16px 0;
+    overflow-y: auto;
 }
 .sidebar .nav-link { 
     color: var(--text-color); 
@@ -58,17 +62,17 @@ body {
 .main-content { 
     margin-left: 250px; 
     padding: 20px; 
-    transition: 0.3s;
+    transition: margin-left 0.3s ease;
 }
 
 /* Chart Containers & Cards */
 .chart-box { 
     padding: 20px; 
     height: 100%;
+    min-height: 300px;
+    position: relative;
 }
-.card {
-    background: transparent;
-}
+.card { background: transparent; }
 
 /* KPI Cards */
 .kpi-card { 
@@ -94,7 +98,7 @@ body {
     to { opacity: 1; transform: translateY(0); } 
 }
 
-/* DataTable Fixes for Glassmorphism */
+/* DataTables Styling */
 .dataTables_wrapper { padding: 10px; }
 .table { background: transparent !important; color: var(--text-color) !important; }
 .table-striped>tbody>tr:nth-of-type(odd)>* { background: rgba(0,0,0,0.02) !important; color: var(--text-color) !important;}
@@ -104,3 +108,41 @@ body {
 [data-bs-theme="dark"] .dt-buttons .btn { background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2);}
 .page-item.active .page-link { background-color: rgba(0,0,0,0.5); border-color: transparent; }
 .page-link { background-color: var(--glass-bg); color: var(--text-color); border: 1px solid var(--glass-border); }
+
+/* MOBILE RESPONSIVENESS */
+@media (max-width: 768px) {
+    /* Hide sidebar completely off-screen on mobile */
+    .sidebar { 
+        transform: translateX(-100%); 
+        border-radius: 0;
+        box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+    }
+    
+    /* Class added via JS when hamburger is clicked */
+    .sidebar.mobile-active { 
+        transform: translateX(0); 
+    }
+    
+    /* Remove main content margin so it takes full width */
+    .main-content { 
+        margin-left: 0; 
+        padding: 10px; 
+    }
+    
+    /* Stack elements tighter on mobile */
+    .navbar { padding: 10px !important; }
+    .kpi-card h2, .kpi-card h4 { font-size: 1.5rem; }
+    
+    /* Ensure DataTables scroll horizontally natively */
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+/* Sidebar overlay for mobile (darkens background when open) */
+.sidebar-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1040;
+    display: none;
+    backdrop-filter: blur(3px);
+}
+.sidebar-overlay.active { display: block; }
