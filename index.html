@@ -13,7 +13,6 @@
 </head>
 <body>
 
-    <!-- Sidebar -->
     <div class="sidebar glass-panel d-flex flex-column p-3">
         <h4 class="text-center mb-4 fw-bold mt-2"><i class="fa-solid fa-gem text-warning me-2"></i>GEMS</h4>
         <ul class="nav nav-pills flex-column mb-auto">
@@ -29,18 +28,12 @@
         </ul>
     </div>
 
-    <!-- Main Content -->
     <div class="main-content">
         
-        <!-- Navbar -->
         <nav class="navbar glass-panel navbar-expand-lg mb-4 px-4 py-3">
             <div class="container-fluid">
                 <span class="navbar-brand mb-0 h4 fw-bold" id="pageTitle">Record New Expense</span>
                 <div class="d-flex align-items-center gap-3">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text glass-panel"><i class="fa-solid fa-user"></i></span>
-                        <input type="text" id="currentUser" class="form-control glass-panel" placeholder="Your Name" value="Admin User">
-                    </div>
                     <button class="btn btn-sm glass-panel" onclick="toggleTheme()" title="Toggle Dark Mode">
                         <i class="fa-solid fa-moon"></i>
                     </button>
@@ -48,7 +41,6 @@
             </div>
         </nav>
 
-        <!-- Toast Notifications -->
         <div class="toast-container position-fixed top-0 end-0 p-3">
             <div id="appToast" class="toast align-items-center text-bg-primary border-0 shadow glass-panel" role="alert">
                 <div class="d-flex">
@@ -58,26 +50,35 @@
             </div>
         </div>
 
-        <!-- 1. VIEW: ADD EXPENSE FORM -->
         <div id="add-expense" class="view-section active">
             <div class="card glass-panel border-0">
                 <div class="card-body p-4">
                     <form id="expenseForm">
                         <div class="row g-3">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="fw-bold">Date *</label>
                                 <input type="date" class="form-control glass-panel" id="date" required>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="fw-bold">Company *</label>
                                 <select class="form-select glass-panel" id="company" required>
+                                    <option value="" disabled selected>Select Company...</option>
                                     <option value="GVR Contractors">GVR Contractors</option>
                                     <option value="KRiyatech">KRiyatech</option>
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="fw-bold">Project / Site *</label>
                                 <input type="text" class="form-control glass-panel" id="project" placeholder="e.g. Odalarevu" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="fw-bold">Entered By *</label>
+                                <select class="form-select glass-panel" id="enteredBy" required>
+                                    <option value="" disabled selected>Select Partner...</option>
+                                    <option value="Gopinath">Gopinath</option>
+                                    <option value="Satish">Satish</option>
+                                    <option value="Partner 3">Partner 3</option>
+                                </select>
                             </div>
                             
                             <div class="col-md-12">
@@ -115,7 +116,6 @@
             </div>
         </div>
 
-        <!-- 2. VIEW: DASHBOARD -->
         <div id="dashboard" class="view-section">
             <div class="glass-panel p-3 mb-4">
                 <div class="row g-2">
@@ -131,8 +131,7 @@
                         <label class="form-label text-muted small fw-bold mb-1"><i class="fa-solid fa-calendar-days me-1"></i> Month</label>
                         <select class="form-select form-select-sm glass-panel" id="filterMonthYear" onchange="applyFilters()">
                             <option value="All">All Months</option>
-                            <!-- Populated dynamically -->
-                        </select>
+                            </select>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label text-muted small fw-bold mb-1"><i class="fa-solid fa-building me-1"></i> Company</label>
@@ -157,7 +156,6 @@
                 </div>
             </div>
 
-            <!-- KPI Cards -->
             <div class="row g-3 mb-4">
                 <div class="col-md-6">
                     <div class="kpi-card glass-panel">
@@ -182,7 +180,6 @@
             </div>
         </div>
 
-        <!-- 3. VIEW: REPORTS -->
         <div id="reports" class="view-section">
             <div class="card glass-panel border-0">
                 <div class="card-body">
@@ -200,8 +197,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Automatically populated -->
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
