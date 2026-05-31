@@ -6,6 +6,8 @@ let charts = {};
 let dataTable;
 
 $(document).ready(() => {
+    // Set today's date in the Add Expense form by default
+    document.getElementById('date').valueAsDate = new Date();
     loadData();
 });
 
@@ -16,7 +18,11 @@ function switchView(viewId) {
     document.getElementById(viewId).classList.add('active');
     event.currentTarget.classList.add('active');
     
-    const titles = { 'dashboard': 'Dashboard Analytics', 'add-expense': 'Record New Expense', 'reports': 'Reports & Exports' };
+    const titles = { 
+        'dashboard': 'Dashboard Analytics', 
+        'add-expense': 'Record New Expense', 
+        'reports': 'Reports & Exports' 
+    };
     document.getElementById('pageTitle').textContent = titles[viewId];
 }
 
@@ -38,67 +44,85 @@ async function loadData() {
         const data = await res.json();
         if(data.status === "success") {
             globalExpenseData = data.data;
-            populateFilterDropdowns(); // Fill Year, Project, User dropdowns
-            applyFilters();            // Process data through filters to build charts/tables
+            populateFilterDropdowns(); 
+            applyFilters();            
         }
     } catch (e) {
         showToast("Failed to load data from server.", "danger");
     }
 }
 
-// Extract unique Years, Projects, and Users
+// Extract unique MMM-YY, Projects, and Users
 function populateFilterDropdowns() {
     const projects = new Set();
     const users = new Set();
-    const years = new Set();
+    const monthYearsMap = new Map(); // Used to sort MMM-YY chronologically
 
     globalExpenseData.forEach(row => {
         if(row.Project) projects.add(row.Project.trim());
         if(row.EnteredBy) users.add(row.EnteredBy.trim());
         if(row.Date) {
             const d = new Date(row.Date);
-            if(!isNaN(d.getFullYear())) years.add(d.getFullYear());
+            if(!isNaN(d)) {
+                // Creates format like "Jan-26"
+                const mmm_yy = d.toLocaleString('en-US', { month: 'short', year: '2-digit' }).replace(' ', '-');
+                const sortVal = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+                monthYearsMap.set(mmm_yy, sortVal);
+            }
         }
     });
 
-    // Populate Years
-    const yearSelect = document.getElementById('filterYear');
-    yearSelect.innerHTML = '<option value="All">All Years</option>';
-    // Sort years descending so newest is at the top
-    Array.from(years).sort().reverse().forEach(y => yearSelect.innerHTML += `<option value="${y}">${y}</option>`);
+    // Populate MMM-YY (Sorted Newest to Oldest)
+    const sortedMonthYears = Array.from(monthYearsMap.keys()).sort((a, b) => monthYearsMap.get(b) - monthYearsMap.get(a));
+    const mySelect = document.getElementById('filterMonthYear');
+    mySelect.innerHTML = '<option value="All">All Months</option>';
+    sortedMonthYears.forEach(my => mySelect.innerHTML += `<option value="${my}">${my}</option>`);
 
     // Populate Projects
     const projSelect = document.getElementById('filterProject');
     projSelect.innerHTML = '<option value="All">All Projects</option>';
-    projects.forEach(p => projSelect.innerHTML += `<option value="${p}">${p}</option>`);
+    Array.from(projects).sort().forEach(p => projSelect.innerHTML += `<option value="${p}">${p}</option>`);
 
     // Populate Users
     const userSelect = document.getElementById('filterUser');
-    userSelect.innerHTML = '<option value="All">All</option>';
-    users.forEach(u => userSelect.innerHTML += `<option value="${u}">${u}</option>`);
+    userSelect.innerHTML = '<option value="All">All Users</option>';
+    Array.from(users).sort().forEach(u => userSelect.innerHTML += `<option value="${u}">${u}</option>`);
 }
 
 // --- FILTERING LOGIC ---
 function applyFilters() {
-    const fMonth = document.getElementById('filterMonth').value;
-    const fYear = document.getElementById('filterYear').value;
+    const startDateVal = document.getElementById('filterStartDate').value;
+    const endDateVal = document.getElementById('filterEndDate').value;
+    const fMonthYear = document.getElementById('filterMonthYear').value;
     const fCompany = document.getElementById('filterCompany').value;
     const fProject = document.getElementById('filterProject').value;
     const fUser = document.getElementById('filterUser').value;
 
+    // Convert string dates to Date objects for precise comparison
+    const startDate = startDateVal ? new Date(startDateVal) : null;
+    if(startDate) startDate.setHours(0,0,0,0);
+    
+    const endDate = endDateVal ? new Date(endDateVal) : null;
+    if(endDate) endDate.setHours(23,59,59,999);
+
     const filteredData = globalExpenseData.filter(row => {
         const date = new Date(row.Date);
-        const monthMatch = (fMonth === "All") || ((date.getMonth() + 1).toString() === fMonth);
-        const yearMatch = (fYear === "All") || (date.getFullYear().toString() === fYear);
+        
+        // 1. Date Range Logic
+        let dateMatch = true;
+        if(startDate && date < startDate) dateMatch = false;
+        if(endDate && date > endDate) dateMatch = false;
+
+        // 2. Dropdown Logic
+        const rowMonthYear = date.toLocaleString('en-US', { month: 'short', year: '2-digit' }).replace(' ', '-');
+        const myMatch = (fMonthYear === "All") || (rowMonthYear === fMonthYear);
         const compMatch = (fCompany === "All") || (row.Company === fCompany);
         const projMatch = (fProject === "All") || (row.Project === fProject);
         const userMatch = (fUser === "All") || (row.EnteredBy === fUser);
 
-        // Record must pass ALL filters to be shown
-        return monthMatch && yearMatch && compMatch && projMatch && userMatch;
+        return dateMatch && myMatch && compMatch && projMatch && userMatch;
     });
 
-    // Pass only the filtered data to update the UI
     processDashboard(filteredData);
     renderTable(filteredData);
 }
@@ -114,10 +138,14 @@ function processDashboard(dataToProcess) {
         let date = new Date(row.Date);
         
         total += amt;
-        compData[row.Company] = (compData[row.Company] || 0) + amt;
+        
+        // Standardize company names for the pie chart
+        let compKey = row.Company.includes("GVR") ? "GVR Contractors" : "KRiyatech";
+        compData[compKey] = (compData[compKey] || 0) + amt;
+        
         payData[row.PaymentMode] = (payData[row.PaymentMode] || 0) + amt;
         
-        let monthStr = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+        let monthStr = date.toLocaleString('default', { month: 'short', year: '2-digit' }).replace(' ', '-');
         trendData[monthStr] = (trendData[monthStr] || 0) + amt;
     });
 
@@ -163,7 +191,7 @@ function renderTable(dataToProcess) {
     tbody.innerHTML = dataToProcess.map(row => `
         <tr>
             <td><small style="opacity: 0.7;">${row.ExpenseID}</small></td>
-            <td>${new Date(row.Date).toLocaleDateString()}</td>
+            <td>${new Date(row.Date).toLocaleDateString('en-IN')}</td>
             <td><strong>${row.Company}</strong></td>
             <td>${row.Project}</td>
             <td>${row.Description}</td>
@@ -218,6 +246,7 @@ document.getElementById('expenseForm').addEventListener('submit', async (e) => {
         await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'addExpense', payload: payload }) });
         showToast("Expense Recorded Successfully!", "success");
         e.target.reset(); 
+        document.getElementById('date').valueAsDate = new Date(); // Reset date to today
         loadData(); 
     } catch(err) {
         showToast("Error submitting expense.", "danger");
