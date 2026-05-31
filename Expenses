@@ -80,7 +80,7 @@
 
 <script>
     // 1. PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
-    const scriptURL = 'YOUR_WEB_APP_URL_HERE'; 
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbyCTK9jF4_HBoZCw38NS_V9JnznU-EbFgx0V5k3ARs-w6gG6O3lYB4LvbztN1RE4EUc/exec'; 
     
     const form = document.getElementById('expenseForm');
     const messageEl = document.getElementById('formMessage');
