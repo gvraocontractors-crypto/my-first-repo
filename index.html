@@ -9,45 +9,48 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css" rel="stylesheet">
-    
     <link href="style.css" rel="stylesheet">
 </head>
 <body>
 
-    <div class="sidebar d-flex flex-column p-3">
-        <h4 class="text-center text-white mb-4 fw-bold"><i class="fa-solid fa-bolt text-warning"></i> CorpFin</h4>
+    <!-- Sidebar -->
+    <div class="sidebar glass-panel d-flex flex-column p-3">
+        <h4 class="text-center mb-4 fw-bold mt-2"><i class="fa-solid fa-bolt text-warning"></i> CorpFin</h4>
         <ul class="nav nav-pills flex-column mb-auto">
             <li class="nav-item">
                 <a href="#" class="nav-link active" onclick="switchView('dashboard')"><i class="fa-solid fa-chart-pie me-2"></i> Dashboard</a>
             </li>
             <li>
-                <a href="#" class="nav-link text-white" onclick="switchView('add-expense')"><i class="fa-solid fa-plus me-2"></i> Add Expense</a>
+                <a href="#" class="nav-link" onclick="switchView('add-expense')"><i class="fa-solid fa-plus me-2"></i> Add Expense</a>
             </li>
             <li>
-                <a href="#" class="nav-link text-white" onclick="switchView('reports')"><i class="fa-solid fa-table me-2"></i> Reports & Exports</a>
+                <a href="#" class="nav-link" onclick="switchView('reports')"><i class="fa-solid fa-table me-2"></i> Reports & Exports</a>
             </li>
         </ul>
     </div>
 
+    <!-- Main Content -->
     <div class="main-content">
         
-        <nav class="navbar navbar-expand-lg mb-4 rounded shadow-sm px-3">
+        <!-- Navbar -->
+        <nav class="navbar glass-panel navbar-expand-lg mb-4 px-4 py-3">
             <div class="container-fluid">
-                <span class="navbar-brand mb-0 h4 fw-bold text-primary" id="pageTitle">Dashboard Analytics</span>
+                <span class="navbar-brand mb-0 h4 fw-bold" id="pageTitle">Dashboard Analytics</span>
                 <div class="d-flex align-items-center gap-3">
                     <div class="input-group input-group-sm">
-                        <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
-                        <input type="text" id="currentUser" class="form-control" placeholder="Your Name" value="Admin User">
+                        <span class="input-group-text glass-panel"><i class="fa-solid fa-user"></i></span>
+                        <input type="text" id="currentUser" class="form-control glass-panel" placeholder="Your Name" value="Admin User">
                     </div>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="toggleTheme()" title="Toggle Dark Mode">
+                    <button class="btn btn-sm glass-panel" onclick="toggleTheme()" title="Toggle Dark Mode">
                         <i class="fa-solid fa-moon"></i>
                     </button>
                 </div>
             </div>
         </nav>
 
+        <!-- Toast Notifications -->
         <div class="toast-container position-fixed top-0 end-0 p-3">
-            <div id="appToast" class="toast align-items-center text-bg-primary border-0 shadow" role="alert">
+            <div id="appToast" class="toast align-items-center text-bg-primary border-0 shadow glass-panel" role="alert">
                 <div class="d-flex">
                     <div class="toast-body fw-bold" id="toastMsg">Message here</div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
@@ -55,87 +58,124 @@
             </div>
         </div>
 
+        <!-- 1. VIEW: DASHBOARD -->
         <div id="dashboard" class="view-section active">
             
+            <!-- GLOBAL FILTERS -->
+            <div class="glass-panel p-3 mb-4">
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small fw-bold mb-1"><i class="fa-solid fa-calendar me-1"></i> Month</label>
+                        <select class="form-select form-select-sm glass-panel" id="filterMonth" onchange="applyFilters()">
+                            <option value="All">All Months</option>
+                            <option value="1">January</option><option value="2">February</option>
+                            <option value="3">March</option><option value="4">April</option>
+                            <option value="5">May</option><option value="6">June</option>
+                            <option value="7">July</option><option value="8">August</option>
+                            <option value="9">September</option><option value="10">October</option>
+                            <option value="11">November</option><option value="12">December</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small fw-bold mb-1"><i class="fa-solid fa-building me-1"></i> Company</label>
+                        <select class="form-select form-select-sm glass-panel" id="filterCompany" onchange="applyFilters()">
+                            <option value="All">All Companies</option>
+                            <option value="GVR Contractors">GVR Contractors</option>
+                            <option value="KRiyatech">KRiyatech</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small fw-bold mb-1"><i class="fa-solid fa-helmet-safety me-1"></i> Project</label>
+                        <select class="form-select form-select-sm glass-panel" id="filterProject" onchange="applyFilters()">
+                            <option value="All">All Projects</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-muted small fw-bold mb-1"><i class="fa-solid fa-user-pen me-1"></i> Entered By</label>
+                        <select class="form-select form-select-sm glass-panel" id="filterUser" onchange="applyFilters()">
+                            <option value="All">All Users</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI Cards -->
             <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <div class="kpi-card bg-gradient-primary">
+                <div class="col-md-6">
+                    <div class="kpi-card glass-panel">
                         <i class="fa-solid fa-wallet"></i>
-                        <h6>Total Expenses</h6>
-                        <h3 id="kpi-total">₹0</h3>
+                        <h6 class="text-muted">Total Filtered Expenses</h6>
+                        <h2 id="kpi-total" class="fw-bold">₹0</h2>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="kpi-card bg-gradient-success">
-                        <i class="fa-solid fa-calendar-day"></i>
-                        <h6>This Month</h6>
-                        <h3 id="kpi-month">₹0</h3>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="kpi-card bg-gradient-info">
+                <div class="col-md-6">
+                    <div class="kpi-card glass-panel">
                         <i class="fa-solid fa-building"></i>
-                        <h6>GVR vs KRiyatech</h6>
-                        <p class="mb-0 fw-bold fs-5" id="kpi-company">GVR: ₹0 | KRI: ₹0</p>
+                        <h6 class="text-muted">GVR vs KRiyatech (Filtered)</h6>
+                        <h4 class="mb-0 fw-bold" id="kpi-company">GVR: ₹0 | KRI: ₹0</h4>
                     </div>
                 </div>
             </div>
             
+            <!-- Charts -->
             <div class="row g-3">
-                <div class="col-md-4"><div class="chart-box"><canvas id="companyChart"></canvas></div></div>
-                <div class="col-md-8"><div class="chart-box"><canvas id="trendChart"></canvas></div></div>
-                <div class="col-md-6 mt-4"><div class="chart-box"><canvas id="paymentChart"></canvas></div></div>
+                <div class="col-md-4"><div class="chart-box glass-panel"><canvas id="companyChart"></canvas></div></div>
+                <div class="col-md-8"><div class="chart-box glass-panel"><canvas id="trendChart"></canvas></div></div>
+                <div class="col-md-6 mt-4"><div class="chart-box glass-panel"><canvas id="paymentChart"></canvas></div></div>
             </div>
         </div>
 
+        <!-- 2. VIEW: ADD EXPENSE FORM -->
         <div id="add-expense" class="view-section">
-            <div class="card shadow-sm border-0">
+            <div class="card glass-panel border-0">
                 <div class="card-body p-4">
                     <form id="expenseForm">
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="fw-bold text-secondary">Date *</label>
-                                <input type="date" class="form-control" id="date" required>
+                                <label class="fw-bold">Date *</label>
+                                <input type="date" class="form-control glass-panel" id="date" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="fw-bold text-secondary">Company *</label>
-                                <select class="form-select" id="company" required>
+                                <label class="fw-bold">Company *</label>
+                                <select class="form-select glass-panel" id="company" required>
                                     <option value="GVR Contractors">GVR Contractors</option>
                                     <option value="KRiyatech">KRiyatech</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="fw-bold text-secondary">Project / Site *</label>
-                                <input type="text" class="form-control" id="project" placeholder="e.g. Odalarevu Substation" required>
+                                <label class="fw-bold">Project / Site *</label>
+                                <input type="text" class="form-control glass-panel" id="project" placeholder="e.g. Odalarevu" required>
                             </div>
                             
                             <div class="col-md-12">
-                                <label class="fw-bold text-secondary">Description *</label>
-                                <input type="text" class="form-control" id="description" placeholder="What was purchased or paid for?" required>
+                                <label class="fw-bold">Description *</label>
+                                <input type="text" class="form-control glass-panel" id="description" required>
                             </div>
                             
                             <div class="col-md-3">
-                                <label class="fw-bold text-secondary">Amount (₹) *</label>
-                                <input type="number" class="form-control" id="amount" placeholder="0" required>
+                                <label class="fw-bold">Amount (₹) *</label>
+                                <input type="number" class="form-control glass-panel" id="amount" required>
                             </div>
                             <div class="col-md-3">
-                                <label class="fw-bold text-secondary">Payment Mode *</label>
-                                <select class="form-select" id="paymentMode" required>
+                                <label class="fw-bold">Payment Mode *</label>
+                                <select class="form-select glass-panel" id="paymentMode" required>
                                     <option value="Bank Transfer">Bank Transfer</option>
                                     <option value="UPI">UPI</option>
                                     <option value="Cash">Cash</option>
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <label class="fw-bold text-secondary">Transaction ID</label>
-                                <input type="text" class="form-control" id="transactionId" placeholder="Optional">
+                                <label class="fw-bold">Transaction ID</label>
+                                <input type="text" class="form-control glass-panel" id="transactionId">
                             </div>
                             <div class="col-md-3">
-                                <label class="fw-bold text-secondary">Upload Bill</label>
-                                <input type="file" class="form-control" id="billFile" accept="image/*,.pdf">
+                                <label class="fw-bold">Upload Bill</label>
+                                <input type="file" class="form-control glass-panel" id="billFile" accept="image/*,.pdf">
                             </div>
                         </div>
-                        <hr class="my-4">
+                        <hr class="my-4 border-secondary">
                         <button type="submit" class="btn btn-primary px-5 py-2 fw-bold" id="submitBtn">
                             <i class="fa-solid fa-cloud-arrow-up me-2"></i> Submit Expense
                         </button>
@@ -144,12 +184,14 @@
             </div>
         </div>
 
+        <!-- 3. VIEW: REPORTS & EXPORTS -->
         <div id="reports" class="view-section">
-            <div class="card shadow-sm border-0">
+            <div class="card glass-panel border-0">
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table id="expenseTable" class="table table-hover table-striped w-100 align-middle">
-                            <thead class="table-dark">
+                        <!-- Pagination is handled automatically by DataTables -->
+                        <table id="expenseTable" class="table table-hover w-100 align-middle">
+                            <thead>
                                 <tr>
                                     <th>ID</th>
                                     <th>Date</th>
@@ -161,7 +203,8 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                </tbody>
+                                <!-- Automatically populated -->
+                            </tbody>
                         </table>
                     </div>
                 </div>
