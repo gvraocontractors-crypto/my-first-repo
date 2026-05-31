@@ -36,33 +36,32 @@ function showToast(msg, type='primary') {
 
 async function loadData() {
     try {
+        console.log("Fetching data from Google Sheets...");
         const res = await fetch(API_URL);
         const data = await res.json();
         
         if(data.status === "success") {
-            
-            // --- AUTO-NORMALIZER: Fixes old data to match the new system ---
+            console.log(`Successfully loaded ${data.data.length} rows.`);
             globalExpenseData = data.data.map(row => {
-                // 1. Standardize Company Names
                 if(row.Company) {
                     let compUpper = row.Company.toString().toUpperCase();
                     if(compUpper.includes('GVR')) row.Company = 'GVR Contractors';
                     if(compUpper.includes('KRI')) row.Company = 'KRiyatech';
                 }
-                // 2. Clean Amounts (Removes commas, ₹, and text so math works)
                 if(row.Amount) {
                     row.Amount = parseFloat(row.Amount.toString().replace(/[^0-9.-]+/g,"")) || 0;
                 }
                 return row;
             });
-            // ----------------------------------------------------------------
 
             populateFilterDropdowns(); 
             applyFilters();            
         } else {
+            console.error("Server Error:", data.message);
             showToast("Server returned an error.", "danger");
         }
     } catch (e) {
+        console.error("Fetch failed:", e);
         showToast("Failed to connect to Google Sheets.", "danger");
     }
 }
@@ -74,7 +73,6 @@ function populateFilterDropdowns() {
     const monthYearsMap = new Map(); 
 
     globalExpenseData.forEach(row => {
-        // Skip entirely blank rows
         if(!row.Date && !row.Amount && !row.Company) return;
 
         if(row.Project) projects.add(row.Project.toString().trim());
@@ -262,7 +260,7 @@ document.getElementById('expenseForm').addEventListener('submit', async (e) => {
         amount: document.getElementById('amount').value,
         paymentMode: document.getElementById('paymentMode').value, 
         transactionId: document.getElementById('transactionId').value,
-        enteredBy: document.getElementById('currentUser').value, 
+        enteredBy: document.getElementById('enteredBy').value, // <--- GRABS FROM DROPDOWN NOW
         fileBase64, fileName, fileMimeType
     };
 
