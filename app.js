@@ -1,17 +1,14 @@
 // REPLACE WITH YOUR ACTUAL GOOGLE APPS SCRIPT WEB APP URL
 const API_URL = 'https://script.google.com/macros/s/AKfycbyCTK9jF4_HBoZCw38NS_V9JnznU-EbFgx0V5k3ARs-w6gG6O3lYB4LvbztN1RE4EUc/exec';
 
-
 let globalExpenseData = [];
 let charts = {};
 let dataTable;
 
-// Initialize on page load
 $(document).ready(() => {
     loadData();
 });
 
-// --- NAVIGATION & UI LOGIC ---
 function switchView(viewId) {
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.sidebar .nav-link').forEach(el => el.classList.remove('active'));
@@ -35,14 +32,13 @@ function showToast(msg, type='primary') {
     new bootstrap.Toast(toastEl).show();
 }
 
-// --- DATA FETCHING & FILTER PREP ---
 async function loadData() {
     try {
         const res = await fetch(API_URL);
         const data = await res.json();
         if(data.status === "success") {
             globalExpenseData = data.data;
-            populateFilterDropdowns(); // Fill the Project and User dropdowns
+            populateFilterDropdowns(); // Fill Year, Project, User dropdowns
             applyFilters();            // Process data through filters to build charts/tables
         }
     } catch (e) {
@@ -50,28 +46,42 @@ async function loadData() {
     }
 }
 
-// Extract unique Projects and Users to populate dropdowns
+// Extract unique Years, Projects, and Users
 function populateFilterDropdowns() {
     const projects = new Set();
     const users = new Set();
+    const years = new Set();
 
     globalExpenseData.forEach(row => {
         if(row.Project) projects.add(row.Project.trim());
         if(row.EnteredBy) users.add(row.EnteredBy.trim());
+        if(row.Date) {
+            const d = new Date(row.Date);
+            if(!isNaN(d.getFullYear())) years.add(d.getFullYear());
+        }
     });
 
+    // Populate Years
+    const yearSelect = document.getElementById('filterYear');
+    yearSelect.innerHTML = '<option value="All">All Years</option>';
+    // Sort years descending so newest is at the top
+    Array.from(years).sort().reverse().forEach(y => yearSelect.innerHTML += `<option value="${y}">${y}</option>`);
+
+    // Populate Projects
     const projSelect = document.getElementById('filterProject');
     projSelect.innerHTML = '<option value="All">All Projects</option>';
     projects.forEach(p => projSelect.innerHTML += `<option value="${p}">${p}</option>`);
 
+    // Populate Users
     const userSelect = document.getElementById('filterUser');
-    userSelect.innerHTML = '<option value="All">All Users</option>';
+    userSelect.innerHTML = '<option value="All">All</option>';
     users.forEach(u => userSelect.innerHTML += `<option value="${u}">${u}</option>`);
 }
 
 // --- FILTERING LOGIC ---
 function applyFilters() {
     const fMonth = document.getElementById('filterMonth').value;
+    const fYear = document.getElementById('filterYear').value;
     const fCompany = document.getElementById('filterCompany').value;
     const fProject = document.getElementById('filterProject').value;
     const fUser = document.getElementById('filterUser').value;
@@ -79,11 +89,13 @@ function applyFilters() {
     const filteredData = globalExpenseData.filter(row => {
         const date = new Date(row.Date);
         const monthMatch = (fMonth === "All") || ((date.getMonth() + 1).toString() === fMonth);
+        const yearMatch = (fYear === "All") || (date.getFullYear().toString() === fYear);
         const compMatch = (fCompany === "All") || (row.Company === fCompany);
         const projMatch = (fProject === "All") || (row.Project === fProject);
         const userMatch = (fUser === "All") || (row.EnteredBy === fUser);
 
-        return monthMatch && compMatch && projMatch && userMatch;
+        // Record must pass ALL filters to be shown
+        return monthMatch && yearMatch && compMatch && projMatch && userMatch;
     });
 
     // Pass only the filtered data to update the UI
@@ -118,7 +130,7 @@ function processDashboard(dataToProcess) {
 function renderCharts(comp, trend, pay) {
     const destroyChart = (name) => { if(charts[name]) charts[name].destroy(); }
     
-    Chart.defaults.color = 'var(--text-color)'; // Make charts adapt to light/dark mode
+    Chart.defaults.color = 'var(--text-color)';
 
     destroyChart('comp');
     charts.comp = new Chart(document.getElementById('companyChart'), {
@@ -142,7 +154,7 @@ function renderCharts(comp, trend, pay) {
     });
 }
 
-// --- DATATABLES LOGIC WITH PAGINATION ---
+// --- DATATABLES LOGIC ---
 function renderTable(dataToProcess) {
     if(dataTable) dataTable.destroy(); 
     
@@ -160,7 +172,6 @@ function renderTable(dataToProcess) {
         </tr>
     `).join('');
 
-    // Pagination is enabled by default. We specify pageLength here.
     dataTable = $('#expenseTable').DataTable({
         dom: '<"row mb-3"<"col-md-6"B><"col-md-6"f>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
         buttons: [
@@ -170,7 +181,7 @@ function renderTable(dataToProcess) {
             { extend: 'pdf', className: 'btn btn-sm btn-light glass-panel' }
         ],
         order: [[1, 'desc']], 
-        pageLength: 8, // Shows 8 rows per page (Pagination)
+        pageLength: 8, 
         language: { search: "", searchPlaceholder: "Search records..." }
     });
 }
