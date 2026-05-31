@@ -1,6 +1,4 @@
-// REPLACE WITH YOUR ACTUAL GOOGLE APPS SCRIPT WEB APP URL
 const API_URL = 'https://script.google.com/macros/s/AKfycbyCTK9jF4_HBoZCw38NS_V9JnznU-EbFgx0V5k3ARs-w6gG6O3lYB4LvbztN1RE4EUc/exec';
-
 
 let globalExpenseData = [];
 let charts = {};
