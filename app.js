@@ -15,7 +15,6 @@ function toggleSidebar() {
     document.getElementById('mobileOverlay').classList.toggle('active');
 }
 
-// --- NAVIGATION LOGIC ---
 function switchView(viewId) {
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.sidebar .nav-link').forEach(el => el.classList.remove('active'));
@@ -29,9 +28,31 @@ function switchView(viewId) {
     if (window.innerWidth <= 991) toggleSidebar();
 }
 
+// --- INTELLIGENT THEME TOGGLE (Fixes Chart.js Fonts) ---
 function toggleTheme() {
     const body = document.documentElement;
-    body.setAttribute('data-bs-theme', body.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark');
+    const isDark = body.getAttribute('data-bs-theme') === 'dark';
+    const newTheme = isDark ? 'light' : 'dark';
+    body.setAttribute('data-bs-theme', newTheme);
+    
+    // Instantly update all chart font and grid colors to match the new theme
+    const textColor = newTheme === 'dark' ? '#f1f1f1' : '#2b2b2b';
+    const gridColor = newTheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+    
+    Chart.defaults.color = textColor;
+    
+    Object.values(charts).forEach(chart => {
+        if (chart.options.plugins.title) chart.options.plugins.title.color = textColor;
+        if (chart.options.plugins.legend.labels) chart.options.plugins.legend.labels.color = textColor;
+        
+        // Update Grid axes for the Bar Chart
+        if (chart.options.scales && chart.options.scales.y) {
+            chart.options.scales.x.ticks.color = textColor;
+            chart.options.scales.y.ticks.color = textColor;
+            chart.options.scales.y.grid.color = gridColor;
+        }
+        chart.update();
+    });
 }
 
 function showToast(msg, type='success') {
@@ -172,28 +193,31 @@ function processDashboard(dataToProcess) {
     renderCharts(compData, trendData, payData);
 }
 
-// --- VIBRANT CHART.JS STYLING ---
 function renderCharts(comp, trend, pay) {
     const destroyChart = (name) => { if(charts[name]) charts[name].destroy(); }
     
-    // Set global default color to adapt to glassmorphism
-    Chart.defaults.color = 'rgba(255, 255, 255, 0.8)';
+    // Detect theme and set initial colors
+    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    const textColor = isDark ? '#f1f1f1' : '#2b2b2b';
+    const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+
+    Chart.defaults.color = textColor;
     Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
     
     const noGridOptions = {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } } },
+        plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, color: textColor } } },
         scales: {
-            x: { grid: { display: false, drawBorder: false } },
-            y: { grid: { color: 'rgba(255,255,255,0.1)', drawBorder: false }, beginAtZero: true }
+            x: { grid: { display: false, drawBorder: false }, ticks: { color: textColor } },
+            y: { grid: { color: gridColor, drawBorder: false }, ticks: { color: textColor }, beginAtZero: true }
         }
     };
     
     const pieOptions = {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } } },
+        plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, color: textColor } } },
         borderWidth: 0,
         cutout: '75%'
     };
@@ -205,7 +229,7 @@ function renderCharts(comp, trend, pay) {
             labels: Object.keys(comp), 
             datasets: [{ data: Object.values(comp), backgroundColor: ['#00f2fe', '#f093fb'], hoverOffset: 10 }] 
         }, 
-        options: { ...pieOptions, plugins: { ...pieOptions.plugins, title: {display: true, text: 'Company Split', font: {size: 16}}}}
+        options: { ...pieOptions, plugins: { ...pieOptions.plugins, title: {display: true, text: 'Company Split', font: {size: 16}, color: textColor}}}
     });
 
     destroyChart('trend');
@@ -217,7 +241,7 @@ function renderCharts(comp, trend, pay) {
                 label: 'Monthly Spend', 
                 data: Object.values(trend), 
                 borderColor: '#4facfe', 
-                backgroundColor: 'rgba(79, 172, 254, 0.3)', 
+                backgroundColor: 'rgba(79, 172, 254, 0.4)', 
                 borderWidth: 3, 
                 tension: 0.4, 
                 fill: true,
@@ -225,7 +249,7 @@ function renderCharts(comp, trend, pay) {
                 pointRadius: 5
             }] 
         }, 
-        options: { ...noGridOptions, plugins: { ...noGridOptions.plugins, title: {display: true, text: 'Expense Trend', font: {size: 16}}}}
+        options: { ...noGridOptions, plugins: { ...noGridOptions.plugins, title: {display: true, text: 'Expense Trend', font: {size: 16}, color: textColor}}}
     });
 
     destroyChart('pay');
@@ -235,11 +259,10 @@ function renderCharts(comp, trend, pay) {
             labels: Object.keys(pay), 
             datasets: [{ data: Object.values(pay), backgroundColor: ['#fa709a', '#fee140', '#00c6fb'], hoverOffset: 10 }] 
         }, 
-        options: { ...pieOptions, cutout: '0%', plugins: { ...pieOptions.plugins, title: {display: true, text: 'Payment Methods', font: {size: 16}}}}
+        options: { ...pieOptions, cutout: '0%', plugins: { ...pieOptions.plugins, title: {display: true, text: 'Payment Methods', font: {size: 16}, color: textColor}}}
     });
 }
 
-// --- DATATABLES LOGIC ---
 function renderTable(dataToProcess) {
     if(dataTable) dataTable.destroy(); 
     const tbody = document.querySelector('#expenseTable tbody');
@@ -253,11 +276,11 @@ function renderTable(dataToProcess) {
         <tr>
             <td><small class="opacity-50">${row.ExpenseID || '-'}</small></td>
             <td class="text-nowrap">${displayDate}</td>
-            <td class="text-nowrap fw-bold text-info">${row.Company || '-'}</td>
+            <td class="text-nowrap fw-bold text-primary">${row.Company || '-'}</td>
             <td>${row.Project || '-'}</td>
             <td>${row.Description || '-'}</td>
             <td class="fw-bold fs-6">₹${displayAmt.toLocaleString('en-IN')}</td>
-            <td>${row.BillURL ? `<a href="${row.BillURL}" target="_blank" class="btn btn-sm btn-outline-info rounded-pill px-3"><i class="fa-solid fa-file-invoice"></i> View</a>` : '<span class="opacity-25">-</span>'}</td>
+            <td>${row.BillURL ? `<a href="${row.BillURL}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3"><i class="fa-solid fa-file-invoice"></i> View</a>` : '<span class="opacity-25">-</span>'}</td>
         </tr>
     `}).join('');
 
