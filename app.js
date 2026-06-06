@@ -23,13 +23,10 @@ function switchView(viewId) {
     document.getElementById(viewId).classList.add('active');
     event.currentTarget.classList.add('active');
     
-    const titles = { 'dashboard': 'Dashboard Analytics', 'add-expense': 'Record New Expense', 'reports': 'Reports & Exports' };
+    const titles = { 'dashboard': 'Analytics Overview', 'add-expense': 'Record New Expense', 'reports': 'Exportable Data' };
     document.getElementById('pageTitle').textContent = titles[viewId];
     
-    // Auto-close sidebar on mobile after clicking a link
-    if (window.innerWidth <= 768) {
-        toggleSidebar();
-    }
+    if (window.innerWidth <= 991) toggleSidebar();
 }
 
 function toggleTheme() {
@@ -37,9 +34,9 @@ function toggleTheme() {
     body.setAttribute('data-bs-theme', body.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark');
 }
 
-function showToast(msg, type='primary') {
+function showToast(msg, type='success') {
     const toastEl = document.getElementById('appToast');
-    toastEl.className = `toast align-items-center text-bg-${type} border-0 shadow glass-panel`;
+    toastEl.className = `toast align-items-center text-white bg-${type} border-0 shadow-lg glass-panel`;
     document.getElementById('toastMsg').textContent = msg;
     new bootstrap.Toast(toastEl).show();
 }
@@ -61,7 +58,6 @@ async function loadData() {
                 }
                 return row;
             });
-
             populateFilterDropdowns(); 
             applyFilters();            
         } else {
@@ -79,7 +75,6 @@ function populateFilterDropdowns() {
 
     globalExpenseData.forEach(row => {
         if(!row.Date && !row.Amount && !row.Company) return;
-
         if(row.Project) projects.add(row.Project.toString().trim());
         if(row.EnteredBy) users.add(row.EnteredBy.toString().trim());
         
@@ -103,7 +98,7 @@ function populateFilterDropdowns() {
     Array.from(projects).sort().forEach(p => projSelect.innerHTML += `<option value="${p}">${p}</option>`);
 
     const userSelect = document.getElementById('filterUser');
-    userSelect.innerHTML = '<option value="All">All Users</option>';
+    userSelect.innerHTML = '<option value="All">All</option>';
     Array.from(users).sort().forEach(u => userSelect.innerHTML += `<option value="${u}">${u}</option>`);
 }
 
@@ -172,75 +167,109 @@ function processDashboard(dataToProcess) {
     });
 
     document.getElementById('kpi-total').textContent = `₹${total.toLocaleString('en-IN')}`;
-    document.getElementById('kpi-company').textContent = `GVR: ₹${compData['GVR Contractors'].toLocaleString('en-IN')} | KRI: ₹${compData['KRiyatech'].toLocaleString('en-IN')}`;
+    document.getElementById('kpi-company').innerHTML = `GVR: ₹${compData['GVR Contractors'].toLocaleString('en-IN')} <br> KRI: ₹${compData['KRiyatech'].toLocaleString('en-IN')}`;
 
     renderCharts(compData, trendData, payData);
 }
 
+// --- VIBRANT CHART.JS STYLING ---
 function renderCharts(comp, trend, pay) {
     const destroyChart = (name) => { if(charts[name]) charts[name].destroy(); }
-    Chart.defaults.color = 'var(--text-color)';
     
-    // Base options for responsive charts
-    const responsiveOptions = {
+    // Set global default color to adapt to glassmorphism
+    Chart.defaults.color = 'rgba(255, 255, 255, 0.8)';
+    Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+    
+    const noGridOptions = {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } }
+        plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } } },
+        scales: {
+            x: { grid: { display: false, drawBorder: false } },
+            y: { grid: { color: 'rgba(255,255,255,0.1)', drawBorder: false }, beginAtZero: true }
+        }
+    };
+    
+    const pieOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } } },
+        borderWidth: 0,
+        cutout: '75%'
     };
 
     destroyChart('comp');
     charts.comp = new Chart(document.getElementById('companyChart'), {
         type: 'doughnut', 
-        data: { labels: Object.keys(comp), datasets: [{ data: Object.values(comp), backgroundColor: ['#a18cd1', '#fbc2eb'], borderWidth: 0 }] }, 
-        options: { ...responsiveOptions, plugins: { ...responsiveOptions.plugins, title: {display: true, text: 'Company Distribution'}}, cutout: '70%'}
+        data: { 
+            labels: Object.keys(comp), 
+            datasets: [{ data: Object.values(comp), backgroundColor: ['#00f2fe', '#f093fb'], hoverOffset: 10 }] 
+        }, 
+        options: { ...pieOptions, plugins: { ...pieOptions.plugins, title: {display: true, text: 'Company Split', font: {size: 16}}}}
     });
 
     destroyChart('trend');
     charts.trend = new Chart(document.getElementById('trendChart'), {
-        type: 'bar', 
-        data: { labels: Object.keys(trend), datasets: [{ label: 'Filtered Spend', data: Object.values(trend), backgroundColor: 'rgba(255, 255, 255, 0.4)', borderColor: 'rgba(255,255,255,1)', borderWidth: 1, borderRadius: 5 }] }, 
-        options: { ...responsiveOptions, plugins: { ...responsiveOptions.plugins, title: {display: true, text: 'Monthly Trend'}}}
+        type: 'line', 
+        data: { 
+            labels: Object.keys(trend), 
+            datasets: [{ 
+                label: 'Monthly Spend', 
+                data: Object.values(trend), 
+                borderColor: '#4facfe', 
+                backgroundColor: 'rgba(79, 172, 254, 0.3)', 
+                borderWidth: 3, 
+                tension: 0.4, 
+                fill: true,
+                pointBackgroundColor: '#fff',
+                pointRadius: 5
+            }] 
+        }, 
+        options: { ...noGridOptions, plugins: { ...noGridOptions.plugins, title: {display: true, text: 'Expense Trend', font: {size: 16}}}}
     });
 
     destroyChart('pay');
     charts.pay = new Chart(document.getElementById('paymentChart'), {
-        type: 'doughnut', 
-        data: { labels: Object.keys(pay), datasets: [{ data: Object.values(pay), backgroundColor: ['#84fab0', '#8fd3f4', '#fccb90'], borderWidth: 0 }] }, 
-        options: { ...responsiveOptions, plugins: { ...responsiveOptions.plugins, title: {display: true, text: 'Payment Modes'}}, cutout: '70%'}
+        type: 'pie', 
+        data: { 
+            labels: Object.keys(pay), 
+            datasets: [{ data: Object.values(pay), backgroundColor: ['#fa709a', '#fee140', '#00c6fb'], hoverOffset: 10 }] 
+        }, 
+        options: { ...pieOptions, cutout: '0%', plugins: { ...pieOptions.plugins, title: {display: true, text: 'Payment Methods', font: {size: 16}}}}
     });
 }
 
+// --- DATATABLES LOGIC ---
 function renderTable(dataToProcess) {
     if(dataTable) dataTable.destroy(); 
     const tbody = document.querySelector('#expenseTable tbody');
     
     tbody.innerHTML = dataToProcess.map(row => {
         const d = new Date(row.Date);
-        const displayDate = isNaN(d.getTime()) ? '-' : d.toLocaleDateString('en-IN');
+        const displayDate = isNaN(d.getTime()) ? '-' : d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
         const displayAmt = isNaN(parseFloat(row.Amount)) ? 0 : parseFloat(row.Amount);
         
         return `
         <tr>
-            <td><small style="opacity: 0.7;">${row.ExpenseID || '-'}</small></td>
+            <td><small class="opacity-50">${row.ExpenseID || '-'}</small></td>
             <td class="text-nowrap">${displayDate}</td>
-            <td class="text-nowrap"><strong>${row.Company || '-'}</strong></td>
+            <td class="text-nowrap fw-bold text-info">${row.Company || '-'}</td>
             <td>${row.Project || '-'}</td>
             <td>${row.Description || '-'}</td>
-            <td class="fw-bold">₹${displayAmt.toLocaleString('en-IN')}</td>
-            <td>${row.BillURL ? `<a href="${row.BillURL}" target="_blank" class="btn btn-sm btn-light glass-panel"><i class="fa-solid fa-file-invoice"></i></a>` : '-'}</td>
+            <td class="fw-bold fs-6">₹${displayAmt.toLocaleString('en-IN')}</td>
+            <td>${row.BillURL ? `<a href="${row.BillURL}" target="_blank" class="btn btn-sm btn-outline-info rounded-pill px-3"><i class="fa-solid fa-file-invoice"></i> View</a>` : '<span class="opacity-25">-</span>'}</td>
         </tr>
     `}).join('');
 
     dataTable = $('#expenseTable').DataTable({
-        dom: '<"row mb-3"<"col-12 col-md-6 mb-2"B><"col-12 col-md-6"f>>rt<"row mt-3"<"col-12 col-md-6"i><"col-12 col-md-6"p>>',
+        dom: '<"row align-items-center mb-3"<"col-12 col-md-6 mb-2 mb-md-0"B><"col-12 col-md-6"f>>rt<"row align-items-center mt-3"<"col-12 col-md-5 small opacity-75"i><"col-12 col-md-7 d-flex justify-content-md-end justify-content-center mt-2 mt-md-0"p>>',
         buttons: [
-            { extend: 'copy', className: 'btn btn-sm btn-light glass-panel' },
-            { extend: 'csv', className: 'btn btn-sm btn-light glass-panel' },
-            { extend: 'excel', className: 'btn btn-sm btn-light glass-panel' }
+            { extend: 'excel', className: 'btn btn-sm btn-light glass-panel px-3 rounded-pill' },
+            { extend: 'pdf', className: 'btn btn-sm btn-light glass-panel px-3 rounded-pill' }
         ],
         order: [[1, 'desc']], 
         pageLength: 8, 
-        language: { search: "", searchPlaceholder: "Search records..." }
+        language: { search: "", searchPlaceholder: "Search any record..." }
     });
 }
 
@@ -248,7 +277,7 @@ document.getElementById('expenseForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
     btn.disabled = true; 
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Uploading...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Processing...';
     
     const fileInput = document.getElementById('billFile');
     let fileBase64 = null, fileName = null, fileMimeType = null;
