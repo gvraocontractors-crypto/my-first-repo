@@ -4,19 +4,22 @@ let globalExpenseData = [];
 let globalProjects = [];
 let charts = {};
 let dataTable;
+let editExpenseModalUI;
+let editProjectModalUI;
+
 $(document).ready(() => {
     document.getElementById('date').valueAsDate = new Date();
     
-    // CACHING LOGIC: Load from local storage instantly if available
+    // Initialize Modals
+    editExpenseModalUI = new bootstrap.Modal(document.getElementById('editExpenseModal'));
+    editProjectModalUI = new bootstrap.Modal(document.getElementById('editProjectModal'));
+
     const cachedData = localStorage.getItem('gemsDataCache');
     if (cachedData) {
         try {
-            const parsed = JSON.parse(cachedData);
-            processServerData(parsed, false); // Render without showing toasts
+            processServerData(JSON.parse(cachedData), false);
         } catch(e) {}
     }
-    
-    // Always fetch fresh data in background
     fetchFreshData();
 });
 
@@ -53,7 +56,6 @@ function toggleTheme() {
     const gridColor = newTheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
     
     Chart.defaults.color = textColor;
-    
     Object.values(charts).forEach(chart => {
         if (chart.options.plugins.title) chart.options.plugins.title.color = textColor;
         if (chart.options.plugins.legend.labels) chart.options.plugins.legend.labels.color = textColor;
@@ -81,12 +83,10 @@ async function fetchFreshData() {
         const data = await res.json();
         
         if(data.status === "success") {
-            // Save to Cache
             localStorage.setItem('gemsDataCache', JSON.stringify(data.data));
             processServerData(data.data, true);
             document.getElementById('syncStatus').innerHTML = '<i class="fa-solid fa-cloud-check text-success"></i> Synced';
         } else {
-            showToast("Server Error.", "danger");
             document.getElementById('syncStatus').innerHTML = '<i class="fa-solid fa-cloud-xmark text-danger"></i> Error';
         }
     } catch (e) {
@@ -95,7 +95,6 @@ async function fetchFreshData() {
 }
 
 function processServerData(serverData, isFresh) {
-    // 1. Process Expenses
     globalExpenseData = serverData.expenses.map(row => {
         if(row.Company) {
             let compUpper = row.Company.toString().toUpperCase();
@@ -108,24 +107,24 @@ function processServerData(serverData, isFresh) {
         return row;
     });
 
-    // 2. Process Projects (from the new Admin tab)
     globalProjects = serverData.projects || [];
     
-    // 3. Update all UI elements
     updateProjectDropdowns();
     renderAdminProjects();
     populateFilterDropdowns(); 
     applyFilters();  
 }
 
-// --- NEW ADMIN & PROJECT LOGIC ---
+// --- PROJECT LOGIC (Admin) ---
 function updateProjectDropdowns() {
-    const expenseFormSelect = document.getElementById('project');
-    expenseFormSelect.innerHTML = '<option value="" disabled selected>Select Project...</option>';
+    const mainSelect = document.getElementById('project');
+    const editSelect = document.getElementById('editProject');
     
-    globalProjects.sort().forEach(proj => {
-        expenseFormSelect.innerHTML += `<option value="${proj}">${proj}</option>`;
-    });
+    let html = '<option value="" disabled selected>Select Project...</option>';
+    globalProjects.sort().forEach(proj => html += `<option value="${proj}">${proj}</option>`);
+    
+    mainSelect.innerHTML = html;
+    editSelect.innerHTML = html;
 }
 
 function renderAdminProjects() {
@@ -135,52 +134,175 @@ function renderAdminProjects() {
         return;
     }
     
-    tbody.innerHTML = globalProjects.sort().map((proj, index) => `
+    tbody.innerHTML = globalProjects.sort().map(proj => `
         <tr>
-            <td class="opacity-50">${index + 1}</td>
             <td class="fw-bold">${proj}</td>
+            <td class="text-end text-nowrap">
+                <button class="btn btn-sm btn-outline-primary glass-panel border-0 px-2" onclick="openEditProject('${proj}')" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button class="btn btn-sm btn-outline-danger glass-panel border-0 px-2 ms-1" onclick="deleteProject('${proj}')" title="Delete"><i class="fa-solid fa-trash"></i></button>
+            </td>
         </tr>
     `).join('');
 }
 
-// Admin Form Submission
+// --- EDIT/DELETE PROJECTS ---
+function openEditProject(projName) {
+    document.getElementById('editOldProjectName').value = projName;
+    document.getElementById('editNewProjectName').value = projName;
+    editProjectModalUI.show();
+}
+
+document.getElementById('editProjectForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('saveEditProjectBtn');
+    btn.disabled = true; btn.innerHTML = 'Saving...';
+    
+    try {
+        await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'editProject', payload: { 
+            oldName: document.getElementById('editOldProjectName').value,
+            newName: document.getElementById('editNewProjectName').value.trim()
+        }})});
+        showToast("Project updated successfully!");
+        editProjectModalUI.hide();
+        fetchFreshData();
+    } catch(err) {
+        showToast("Error updating project", "danger");
+    } finally {
+        btn.disabled = false; btn.innerHTML = 'Update Name';
+    }
+});
+
+async function deleteProject(projName) {
+    if(!confirm(`Are you sure you want to permanently delete the project: ${projName}?`)) return;
+    
+    try {
+        await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteProject', payload: { projectName: projName }})});
+        showToast("Project deleted.", "danger");
+        fetchFreshData();
+    } catch(err) {
+        showToast("Error deleting project.", "danger");
+    }
+}
+
+
+// --- EDIT/DELETE EXPENSES ---
+function openEditExpense(id) {
+    const expense = globalExpenseData.find(e => e.ExpenseID === id);
+    if(!expense) return;
+
+    document.getElementById('editExpenseId').value = expense.ExpenseID;
+    
+    // Parse date for HTML input
+    const d = new Date(expense.Date);
+    if(!isNaN(d.getTime())) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        document.getElementById('editDate').value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    document.getElementById('editCompany').value = expense.Company;
+    document.getElementById('editEnteredBy').value = expense.EnteredBy;
+    
+    // Ensure project dropdown has the option, even if it was deleted
+    let projSelect = document.getElementById('editProject');
+    if(!Array.from(projSelect.options).some(opt => opt.value === expense.Project)) {
+        projSelect.innerHTML += `<option value="${expense.Project}">${expense.Project}</option>`;
+    }
+    projSelect.value = expense.Project;
+    
+    document.getElementById('editDescription').value = expense.Description;
+    document.getElementById('editAmount').value = expense.Amount;
+    document.getElementById('editPaymentMode').value = expense.PaymentMode;
+    document.getElementById('editTransactionId').value = expense.TransactionID || '';
+    
+    editExpenseModalUI.show();
+}
+
+document.getElementById('editExpenseForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('saveEditExpenseBtn');
+    btn.disabled = true; btn.innerHTML = 'Saving...';
+    
+    const fileInput = document.getElementById('editBillFile');
+    let fileBase64 = null, fileName = null, fileMimeType = null;
+
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        fileName = file.name; fileMimeType = file.type;
+        fileBase64 = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.readAsDataURL(file); });
+    }
+
+    const payload = {
+        id: document.getElementById('editExpenseId').value,
+        date: document.getElementById('editDate').value, 
+        company: document.getElementById('editCompany').value,
+        project: document.getElementById('editProject').value, 
+        description: document.getElementById('editDescription').value, 
+        amount: document.getElementById('editAmount').value,
+        paymentMode: document.getElementById('editPaymentMode').value, 
+        transactionId: document.getElementById('editTransactionId').value,
+        enteredBy: document.getElementById('editEnteredBy').value, 
+        fileBase64, fileName, fileMimeType
+    };
+
+    try {
+        await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'editExpense', payload: payload }) });
+        showToast("Expense updated successfully!");
+        editExpenseModalUI.hide();
+        document.getElementById('editBillFile').value = ""; // clear file input
+        fetchFreshData();
+    } catch(err) {
+        showToast("Error updating expense", "danger");
+    } finally {
+        btn.disabled = false; btn.innerHTML = 'Save Changes';
+    }
+});
+
+async function deleteExpense(id) {
+    if(!confirm(`Are you sure you want to permanently delete Expense ID: ${id}?`)) return;
+    
+    try {
+        await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteExpense', payload: { id: id }})});
+        showToast("Expense deleted.", "danger");
+        fetchFreshData();
+    } catch(err) {
+        showToast("Error deleting expense.", "danger");
+    }
+}
+
+
+// --- ADD NEW PROJECT LOGIC ---
 document.getElementById('projectForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitProjectBtn');
     const projectName = document.getElementById('newProjectName').value.trim();
     
-    btn.disabled = true; 
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Saving...';
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Saving...';
 
     try {
-        await fetch(API_URL, { 
-            method: 'POST', 
-            body: JSON.stringify({ action: 'addProject', payload: { projectName: projectName } }) 
-        });
+        await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'addProject', payload: { projectName: projectName } }) });
         showToast("Project Added Successfully!", "success");
         e.target.reset(); 
-        fetchFreshData(); // Refresh everything
+        fetchFreshData(); 
     } catch(err) {
         showToast("Error adding project.", "danger");
     } finally {
-        btn.disabled = false; 
-        btn.innerHTML = '<i class="fa-solid fa-plus me-2"></i> Save Project';
+        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-plus me-2"></i> Save Project';
     }
 });
 
 
-// --- FILTERING & DASHBOARD (Existing Logic updated for new structure) ---
+// --- DASHBOARD & REPORTS RENDERING ---
 function populateFilterDropdowns() {
     const filterProjects = new Set();
     const users = new Set();
     const monthYearsMap = new Map(); 
 
-    // Combine historical projects from expenses with active projects from Admin
     globalProjects.forEach(p => filterProjects.add(p));
 
     globalExpenseData.forEach(row => {
         if(!row.Date && !row.Amount && !row.Company) return;
-        
         if(row.Project) filterProjects.add(row.Project.toString().trim());
         if(row.EnteredBy) users.add(row.EnteredBy.toString().trim());
         
@@ -218,7 +340,6 @@ function applyFilters() {
 
     const startDate = startDateVal ? new Date(startDateVal) : null;
     if(startDate) startDate.setHours(0,0,0,0);
-    
     const endDate = endDateVal ? new Date(endDateVal) : null;
     if(endDate) endDate.setHours(23,59,59,999);
 
@@ -226,8 +347,7 @@ function applyFilters() {
         if(!row.Date && !row.Amount && !row.Company) return false;
 
         const date = new Date(row.Date);
-        let dateMatch = true;
-        let myMatch = true;
+        let dateMatch = true; let myMatch = true;
         
         if(!isNaN(date.getTime())) {
             if(startDate && date < startDate) dateMatch = false;
@@ -257,12 +377,10 @@ function processDashboard(dataToProcess) {
     dataToProcess.forEach(row => {
         let amt = parseFloat(row.Amount) || 0;
         total += amt;
-        
         if(row.Company) {
             let compKey = row.Company.includes("GVR") ? "GVR Contractors" : "KRiyatech";
             compData[compKey] = (compData[compKey] || 0) + amt;
         }
-        
         if(row.PaymentMode) payData[row.PaymentMode] = (payData[row.PaymentMode] || 0) + amt;
         
         const date = new Date(row.Date);
@@ -274,13 +392,11 @@ function processDashboard(dataToProcess) {
 
     document.getElementById('kpi-total').textContent = `₹${total.toLocaleString('en-IN')}`;
     document.getElementById('kpi-company').innerHTML = `GVR: ₹${compData['GVR Contractors'].toLocaleString('en-IN')} <br> KRI: ₹${compData['KRiyatech'].toLocaleString('en-IN')}`;
-
     renderCharts(compData, trendData, payData);
 }
 
 function renderCharts(comp, trend, pay) {
     const destroyChart = (name) => { if(charts[name]) charts[name].destroy(); }
-    
     const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
     const textColor = isDark ? '#f1f1f1' : '#2b2b2b';
     const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
@@ -329,6 +445,7 @@ function renderTable(dataToProcess) {
     if(dataTable) dataTable.destroy(); 
     const tbody = document.querySelector('#expenseTable tbody');
     
+    // RENDER REPORTS TABLE WITH ACTIONS
     tbody.innerHTML = dataToProcess.map(row => {
         const d = new Date(row.Date);
         const displayDate = isNaN(d.getTime()) ? '-' : d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
@@ -343,27 +460,31 @@ function renderTable(dataToProcess) {
             <td>${row.Description || '-'}</td>
             <td class="fw-bold fs-6">₹${displayAmt.toLocaleString('en-IN')}</td>
             <td>${row.BillURL ? `<a href="${row.BillURL}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3"><i class="fa-solid fa-file-invoice"></i> View</a>` : '<span class="opacity-25">-</span>'}</td>
+            <td class="text-nowrap">
+                <button class="btn btn-sm btn-outline-secondary glass-panel border-0 px-2" onclick="openEditExpense('${row.ExpenseID}')" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button class="btn btn-sm btn-outline-danger glass-panel border-0 px-2 ms-1" onclick="deleteExpense('${row.ExpenseID}')" title="Delete"><i class="fa-solid fa-trash"></i></button>
+            </td>
         </tr>
     `}).join('');
 
     dataTable = $('#expenseTable').DataTable({
         dom: '<"row align-items-center mb-3"<"col-12 col-md-6 mb-2 mb-md-0"B><"col-12 col-md-6"f>>rt<"row align-items-center mt-3"<"col-12 col-md-5 small opacity-75"i><"col-12 col-md-7 d-flex justify-content-md-end justify-content-center mt-2 mt-md-0"p>>',
         buttons: [
-            { extend: 'excel', className: 'btn btn-sm btn-light glass-panel px-3 rounded-pill' },
-            { extend: 'pdf', className: 'btn btn-sm btn-light glass-panel px-3 rounded-pill' }
+            { extend: 'excel', className: 'btn btn-sm btn-light glass-panel px-3 rounded-pill', exportOptions: { columns: [0,1,2,3,4,5] } },
+            { extend: 'pdf', className: 'btn btn-sm btn-light glass-panel px-3 rounded-pill', exportOptions: { columns: [0,1,2,3,4,5] } }
         ],
         order: [[1, 'desc']], 
         pageLength: 8, 
-        language: { search: "", searchPlaceholder: "Search any record..." }
+        language: { search: "", searchPlaceholder: "Search any record..." },
+        columnDefs: [ { orderable: false, targets: [6, 7] } ] // Disable sorting on Bill and Actions columns
     });
 }
 
-// Add Expense Form Submission
+// --- ADD NEW EXPENSE SUBMISSION ---
 document.getElementById('expenseForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
-    btn.disabled = true; 
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Processing...';
+    btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Processing...';
     
     const fileInput = document.getElementById('billFile');
     let fileBase64 = null, fileName = null, fileMimeType = null;
@@ -395,7 +516,6 @@ document.getElementById('expenseForm').addEventListener('submit', async (e) => {
     } catch(err) {
         showToast("Error submitting expense.", "danger");
     } finally {
-        btn.disabled = false; 
-        btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up me-2"></i> Submit Expense';
+        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up me-2"></i> Submit Expense';
     }
 });
