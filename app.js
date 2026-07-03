@@ -1,15 +1,27 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbyCTK9jF4_HBoZCw38NS_V9JnznU-EbFgx0V5k3ARs-w6gG6O3lYB4LvbztN1RE4EUc/exec';
 
 let globalExpenseData = [];
+let globalProjects = [];
 let charts = {};
 let dataTable;
 
 $(document).ready(() => {
     document.getElementById('date').valueAsDate = new Date();
-    loadData();
+    
+    // CACHING LOGIC: Load from local storage instantly if available
+    const cachedData = localStorage.getItem('gemsDataCache');
+    if (cachedData) {
+        try {
+            const parsed = JSON.parse(cachedData);
+            processServerData(parsed, false); // Render without showing toasts
+        } catch(e) {}
+    }
+    
+    // Always fetch fresh data in background
+    fetchFreshData();
 });
 
-// --- MOBILE SIDEBAR LOGIC ---
+// --- UI LOGIC ---
 function toggleSidebar() {
     document.getElementById('mainSidebar').classList.toggle('mobile-active');
     document.getElementById('mobileOverlay').classList.toggle('active');
@@ -22,20 +34,22 @@ function switchView(viewId) {
     document.getElementById(viewId).classList.add('active');
     event.currentTarget.classList.add('active');
     
-    const titles = { 'dashboard': 'Analytics Overview', 'add-expense': 'Record New Expense', 'reports': 'Exportable Data' };
+    const titles = { 
+        'dashboard': 'Analytics Overview', 
+        'add-expense': 'Record New Expense', 
+        'reports': 'Exportable Data',
+        'admin': 'Admin Panel - Manage Projects'
+    };
     document.getElementById('pageTitle').textContent = titles[viewId];
-    
     if (window.innerWidth <= 991) toggleSidebar();
 }
 
-// --- INTELLIGENT THEME TOGGLE (Fixes Chart.js Fonts) ---
 function toggleTheme() {
     const body = document.documentElement;
     const isDark = body.getAttribute('data-bs-theme') === 'dark';
     const newTheme = isDark ? 'light' : 'dark';
     body.setAttribute('data-bs-theme', newTheme);
     
-    // Instantly update all chart font and grid colors to match the new theme
     const textColor = newTheme === 'dark' ? '#f1f1f1' : '#2b2b2b';
     const gridColor = newTheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
     
@@ -44,8 +58,6 @@ function toggleTheme() {
     Object.values(charts).forEach(chart => {
         if (chart.options.plugins.title) chart.options.plugins.title.color = textColor;
         if (chart.options.plugins.legend.labels) chart.options.plugins.legend.labels.color = textColor;
-        
-        // Update Grid axes for the Bar Chart
         if (chart.options.scales && chart.options.scales.y) {
             chart.options.scales.x.ticks.color = textColor;
             chart.options.scales.y.ticks.color = textColor;
@@ -62,41 +74,115 @@ function showToast(msg, type='success') {
     new bootstrap.Toast(toastEl).show();
 }
 
-async function loadData() {
+// --- DATA FETCHING & PROCESSING ---
+async function fetchFreshData() {
+    document.getElementById('syncStatus').innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin text-primary"></i> Syncing...';
     try {
         const res = await fetch(API_URL);
         const data = await res.json();
         
         if(data.status === "success") {
-            globalExpenseData = data.data.map(row => {
-                if(row.Company) {
-                    let compUpper = row.Company.toString().toUpperCase();
-                    if(compUpper.includes('GVR')) row.Company = 'GVR Contractors';
-                    if(compUpper.includes('KRI')) row.Company = 'KRiyatech';
-                }
-                if(row.Amount) {
-                    row.Amount = parseFloat(row.Amount.toString().replace(/[^0-9.-]+/g,"")) || 0;
-                }
-                return row;
-            });
-            populateFilterDropdowns(); 
-            applyFilters();            
+            // Save to Cache
+            localStorage.setItem('gemsDataCache', JSON.stringify(data.data));
+            processServerData(data.data, true);
+            document.getElementById('syncStatus').innerHTML = '<i class="fa-solid fa-cloud-check text-success"></i> Synced';
         } else {
-            showToast("Server returned an error.", "danger");
+            showToast("Server Error.", "danger");
+            document.getElementById('syncStatus').innerHTML = '<i class="fa-solid fa-cloud-xmark text-danger"></i> Error';
         }
     } catch (e) {
-        showToast("Failed to connect to server.", "danger");
+        document.getElementById('syncStatus').innerHTML = '<i class="fa-solid fa-cloud-xmark text-danger"></i> Offline';
     }
 }
 
+function processServerData(serverData, isFresh) {
+    // 1. Process Expenses
+    globalExpenseData = serverData.expenses.map(row => {
+        if(row.Company) {
+            let compUpper = row.Company.toString().toUpperCase();
+            if(compUpper.includes('GVR')) row.Company = 'GVR Contractors';
+            if(compUpper.includes('KRI')) row.Company = 'KRiyatech';
+        }
+        if(row.Amount) {
+            row.Amount = parseFloat(row.Amount.toString().replace(/[^0-9.-]+/g,"")) || 0;
+        }
+        return row;
+    });
+
+    // 2. Process Projects (from the new Admin tab)
+    globalProjects = serverData.projects || [];
+    
+    // 3. Update all UI elements
+    updateProjectDropdowns();
+    renderAdminProjects();
+    populateFilterDropdowns(); 
+    applyFilters();  
+}
+
+// --- NEW ADMIN & PROJECT LOGIC ---
+function updateProjectDropdowns() {
+    const expenseFormSelect = document.getElementById('project');
+    expenseFormSelect.innerHTML = '<option value="" disabled selected>Select Project...</option>';
+    
+    globalProjects.sort().forEach(proj => {
+        expenseFormSelect.innerHTML += `<option value="${proj}">${proj}</option>`;
+    });
+}
+
+function renderAdminProjects() {
+    const tbody = document.getElementById('projectListBody');
+    if (globalProjects.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="2" class="text-center opacity-50">No projects added yet.</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = globalProjects.sort().map((proj, index) => `
+        <tr>
+            <td class="opacity-50">${index + 1}</td>
+            <td class="fw-bold">${proj}</td>
+        </tr>
+    `).join('');
+}
+
+// Admin Form Submission
+document.getElementById('projectForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitProjectBtn');
+    const projectName = document.getElementById('newProjectName').value.trim();
+    
+    btn.disabled = true; 
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Saving...';
+
+    try {
+        await fetch(API_URL, { 
+            method: 'POST', 
+            body: JSON.stringify({ action: 'addProject', payload: { projectName: projectName } }) 
+        });
+        showToast("Project Added Successfully!", "success");
+        e.target.reset(); 
+        fetchFreshData(); // Refresh everything
+    } catch(err) {
+        showToast("Error adding project.", "danger");
+    } finally {
+        btn.disabled = false; 
+        btn.innerHTML = '<i class="fa-solid fa-plus me-2"></i> Save Project';
+    }
+});
+
+
+// --- FILTERING & DASHBOARD (Existing Logic updated for new structure) ---
 function populateFilterDropdowns() {
-    const projects = new Set();
+    const filterProjects = new Set();
     const users = new Set();
     const monthYearsMap = new Map(); 
 
+    // Combine historical projects from expenses with active projects from Admin
+    globalProjects.forEach(p => filterProjects.add(p));
+
     globalExpenseData.forEach(row => {
         if(!row.Date && !row.Amount && !row.Company) return;
-        if(row.Project) projects.add(row.Project.toString().trim());
+        
+        if(row.Project) filterProjects.add(row.Project.toString().trim());
         if(row.EnteredBy) users.add(row.EnteredBy.toString().trim());
         
         if(row.Date) {
@@ -116,7 +202,7 @@ function populateFilterDropdowns() {
 
     const projSelect = document.getElementById('filterProject');
     projSelect.innerHTML = '<option value="All">All Projects</option>';
-    Array.from(projects).sort().forEach(p => projSelect.innerHTML += `<option value="${p}">${p}</option>`);
+    Array.from(filterProjects).sort().forEach(p => projSelect.innerHTML += `<option value="${p}">${p}</option>`);
 
     const userSelect = document.getElementById('filterUser');
     userSelect.innerHTML = '<option value="All">All</option>';
@@ -196,7 +282,6 @@ function processDashboard(dataToProcess) {
 function renderCharts(comp, trend, pay) {
     const destroyChart = (name) => { if(charts[name]) charts[name].destroy(); }
     
-    // Detect theme and set initial colors
     const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
     const textColor = isDark ? '#f1f1f1' : '#2b2b2b';
     const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
@@ -205,8 +290,7 @@ function renderCharts(comp, trend, pay) {
     Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
     
     const noGridOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, color: textColor } } },
         scales: {
             x: { grid: { display: false, drawBorder: false }, ticks: { color: textColor } },
@@ -215,50 +299,29 @@ function renderCharts(comp, trend, pay) {
     };
     
     const pieOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
+        responsive: true, maintainAspectRatio: false,
         plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, color: textColor } } },
-        borderWidth: 0,
-        cutout: '75%'
+        borderWidth: 0, cutout: '75%'
     };
 
     destroyChart('comp');
     charts.comp = new Chart(document.getElementById('companyChart'), {
         type: 'doughnut', 
-        data: { 
-            labels: Object.keys(comp), 
-            datasets: [{ data: Object.values(comp), backgroundColor: ['#00f2fe', '#f093fb'], hoverOffset: 10 }] 
-        }, 
+        data: { labels: Object.keys(comp), datasets: [{ data: Object.values(comp), backgroundColor: ['#00f2fe', '#f093fb'], hoverOffset: 10 }] }, 
         options: { ...pieOptions, plugins: { ...pieOptions.plugins, title: {display: true, text: 'Company Split', font: {size: 16}, color: textColor}}}
     });
 
     destroyChart('trend');
     charts.trend = new Chart(document.getElementById('trendChart'), {
         type: 'line', 
-        data: { 
-            labels: Object.keys(trend), 
-            datasets: [{ 
-                label: 'Monthly Spend', 
-                data: Object.values(trend), 
-                borderColor: '#4facfe', 
-                backgroundColor: 'rgba(79, 172, 254, 0.4)', 
-                borderWidth: 3, 
-                tension: 0.4, 
-                fill: true,
-                pointBackgroundColor: '#fff',
-                pointRadius: 5
-            }] 
-        }, 
+        data: { labels: Object.keys(trend), datasets: [{ label: 'Monthly Spend', data: Object.values(trend), borderColor: '#4facfe', backgroundColor: 'rgba(79, 172, 254, 0.4)', borderWidth: 3, tension: 0.4, fill: true, pointBackgroundColor: '#fff', pointRadius: 5 }] }, 
         options: { ...noGridOptions, plugins: { ...noGridOptions.plugins, title: {display: true, text: 'Expense Trend', font: {size: 16}, color: textColor}}}
     });
 
     destroyChart('pay');
     charts.pay = new Chart(document.getElementById('paymentChart'), {
         type: 'pie', 
-        data: { 
-            labels: Object.keys(pay), 
-            datasets: [{ data: Object.values(pay), backgroundColor: ['#fa709a', '#fee140', '#00c6fb'], hoverOffset: 10 }] 
-        }, 
+        data: { labels: Object.keys(pay), datasets: [{ data: Object.values(pay), backgroundColor: ['#fa709a', '#fee140', '#00c6fb'], hoverOffset: 10 }] }, 
         options: { ...pieOptions, cutout: '0%', plugins: { ...pieOptions.plugins, title: {display: true, text: 'Payment Methods', font: {size: 16}, color: textColor}}}
     });
 }
@@ -296,6 +359,7 @@ function renderTable(dataToProcess) {
     });
 }
 
+// Add Expense Form Submission
 document.getElementById('expenseForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
@@ -328,7 +392,7 @@ document.getElementById('expenseForm').addEventListener('submit', async (e) => {
         showToast("Expense Recorded Successfully!", "success");
         e.target.reset(); 
         document.getElementById('date').valueAsDate = new Date(); 
-        loadData(); 
+        fetchFreshData(); 
     } catch(err) {
         showToast("Error submitting expense.", "danger");
     } finally {
