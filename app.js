@@ -4,7 +4,6 @@ let globalExpenseData = [];
 let globalProjects = [];
 let charts = {};
 let dataTable;
-
 $(document).ready(() => {
     document.getElementById('date').valueAsDate = new Date();
     
