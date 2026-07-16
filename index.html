@@ -33,6 +33,9 @@
             <li>
                 <a href="#" class="nav-link" onclick="switchView('admin')"><i class="fa-solid fa-gear me-3"></i> Admin Panel</a>
             </li>
+            <li>
+                <a href="#" class="nav-link" onclick="switchView('billing')"><i class="fa-solid fa-file-invoice-dollar me-3"></i> O&M Billing</a>
+            </li>
         </ul>
     </div>
 
@@ -130,6 +133,33 @@
                     </form>
                 </div>
             </div>
+            <!-- O&M BILLING SECTION -->
+        <div id="billing" class="view-section">
+            <div class="row g-4" id="cardContainer">
+                <!-- Dynamic Month Cards will be injected here by app.js -->
+            </div>
+        </div>
+
+    </div> <!-- END main-content -->
+
+    <!-- O&M BILLING CONFIRMATION MODAL (Bootstrap Native) -->
+    <div class="modal fade" id="confirmBillingModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-panel">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-file-invoice text-primary me-2"></i>Generate Billing Data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pb-4">
+                    <p class="mb-4">Are you sure you want to generate the ONGC invoice and merge all field documents for <strong id="modalMonthText" class="text-primary fs-5"></strong>?</p>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary glass-panel me-2" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="executeGeneration()">Generate Now</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
         </div>
 
         <div id="dashboard" class="view-section">
