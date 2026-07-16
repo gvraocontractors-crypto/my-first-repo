@@ -40,7 +40,8 @@ function switchView(viewId) {
         'dashboard': 'Analytics Overview', 
         'add-expense': 'Record New Expense', 
         'reports': 'Exportable Data',
-        'admin': 'Admin Panel - Manage Projects'
+        'admin': 'Admin Panel - Manage Projects',
+        'billing': 'O&M Billing'
     };
     document.getElementById('pageTitle').textContent = titles[viewId];
     if (window.innerWidth <= 991) toggleSidebar();
@@ -594,6 +595,9 @@ function executeGeneration() {
     const month = activeBillingMonth;
     const cardElement = activeBillingCard;
 
+    // Set GAS API URL for generating the invoice
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx47ssWdREeBT8ySJNituQKlunYiwAghIRhd_fZob6IjefosDE7fVMj5p8jtrWJQw5TDQ/exec";
+
     // Set UI to loading state
     cardElement.classList.add('loading');
     cardElement.innerHTML = `
@@ -602,34 +606,35 @@ function executeGeneration() {
         <span class="small opacity-75 mt-2 d-block">Merging PDFs</span>
     `;
 
-    // Call Backend
-    if(typeof google !== 'undefined' && google.script) {
-        google.script.run
-        .withSuccessHandler((response) => {
-            if(response.success) {
-                cardElement.classList.remove('loading');
-                cardElement.classList.add('processed');
-                cardElement.style.backgroundColor = 'rgba(40, 167, 69, 0.05)'; 
-                cardElement.innerHTML = `
-                    <a href="${response.folderUrl}" target="_blank" class="text-decoration-none text-success h-100 d-flex flex-column justify-content-center align-items-center">
-                        <i class="fa-solid fa-circle-check fs-1 mb-2"></i>
-                        <h4 class="fw-bold m-0 text-dark">${month}</h4>
-                        <span class="small fw-bold mt-2 d-block">📂 Open Folder</span>
-                    </a>`;
-            } else {
-                alert("Error: " + response.error);
-                resetBillingCard(cardElement, month);
-            }
-        })
-        .withFailureHandler((error) => {
-            alert("Execution failed: " + error);
+    // Send data to Google Apps Script using fetch
+    fetch(GAS_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'text/plain' 
+        },
+        body: JSON.stringify({ month: month })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if(data.success) {
+            cardElement.classList.remove('loading');
+            cardElement.classList.add('processed');
+            cardElement.style.backgroundColor = 'rgba(40, 167, 69, 0.05)'; 
+            cardElement.innerHTML = `
+                <a href="${data.folderUrl}" target="_blank" class="text-decoration-none text-success h-100 d-flex flex-column justify-content-center align-items-center">
+                    <i class="fa-solid fa-circle-check fs-1 mb-2"></i>
+                    <h4 class="fw-bold m-0 text-dark">${month}</h4>
+                    <span class="small fw-bold mt-2 d-block">📂 Open Folder</span>
+                </a>`;
+        } else {
+            alert("API Error: " + data.error);
             resetBillingCard(cardElement, month);
-        })
-        .processMonthInvoice(month);
-    } else {
-        alert("GAS backend disconnected. Please run inside Google Apps Script environment.");
+        }
+    })
+    .catch(error => {
+        alert("Network or Execution failed: " + error);
         resetBillingCard(cardElement, month);
-    }
+    });
 }
 
 function resetBillingCard(cardElement, month) {
