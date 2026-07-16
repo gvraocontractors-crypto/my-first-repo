@@ -519,3 +519,126 @@ document.getElementById('expenseForm').addEventListener('submit', async (e) => {
         btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up me-2"></i> Submit Expense';
     }
 });
+// ==========================================
+// O&M BILLING ENGINE LOGIC
+// ==========================================
+
+function initializeBillingCards() {
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const startYear = 2026;
+    const startMonth = 5; // June is index 5
+    
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    
+    // Calculate months elapsed since June 2026, plus 3 months ahead
+    const monthsToGenerate = (currentYear - startYear) * 12 + (currentMonth - startMonth) + 4;
+    
+    const dynamicMonths = [];
+    for (let i = 0; i < monthsToGenerate; i++) {
+        let d = new Date(startYear, startMonth + i, 1);
+        let mStr = monthNames[d.getMonth()];
+        let yStr = d.getFullYear().toString().slice(-2);
+        dynamicMonths.push(`${mStr}-${yStr}`); 
+    }
+
+    const container = document.getElementById('cardContainer');
+    if(!container) return;
+    container.innerHTML = ''; 
+
+    dynamicMonths.forEach(month => {
+        // Utilizing existing Bootstrap grid & GEMS glass-panel classes
+        const col = document.createElement('div');
+        col.className = 'col-12 col-md-4 col-lg-3';
+        
+        const card = document.createElement('div');
+        card.className = 'card glass-panel border-0 text-center p-4 h-100 shadow-sm';
+        card.style.cursor = 'pointer';
+        card.style.transition = 'transform 0.2s';
+        card.onmouseover = () => { if(!card.classList.contains('processed')) card.style.transform = 'translateY(-5px)'; };
+        card.onmouseout = () => card.style.transform = 'translateY(0)';
+        
+        card.innerHTML = `
+            <h4 class="fw-bold m-0 text-primary">${month}</h4>
+            <span class="small opacity-75 mt-2 d-block fw-bold"><i class="fa-solid fa-wand-magic-sparkles me-1"></i> Ready to generate</span>
+        `;
+        
+        card.onclick = () => openBillingModal(month, card);
+        col.appendChild(card);
+        container.appendChild(col);
+    });
+}
+
+let activeBillingMonth = null;
+let activeBillingCard = null;
+let billingModalInstance = null;
+
+function openBillingModal(month, cardElement) {
+    if (cardElement.classList.contains('processed') || cardElement.classList.contains('loading')) return; 
+    
+    activeBillingMonth = month;
+    activeBillingCard = cardElement;
+    document.getElementById('modalMonthText').innerText = month;
+    
+    // Trigger Bootstrap Modal
+    if (!billingModalInstance) {
+        billingModalInstance = new bootstrap.Modal(document.getElementById('confirmBillingModal'));
+    }
+    billingModalInstance.show();
+}
+
+function executeGeneration() {
+    billingModalInstance.hide();
+    
+    const month = activeBillingMonth;
+    const cardElement = activeBillingCard;
+
+    // Set UI to loading state
+    cardElement.classList.add('loading');
+    cardElement.innerHTML = `
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <h5 class="fw-bold m-0">Generating...</h5>
+        <span class="small opacity-75 mt-2 d-block">Merging PDFs</span>
+    `;
+
+    // Call Backend
+    if(typeof google !== 'undefined' && google.script) {
+        google.script.run
+        .withSuccessHandler((response) => {
+            if(response.success) {
+                cardElement.classList.remove('loading');
+                cardElement.classList.add('processed');
+                cardElement.style.backgroundColor = 'rgba(40, 167, 69, 0.05)'; 
+                cardElement.innerHTML = `
+                    <a href="${response.folderUrl}" target="_blank" class="text-decoration-none text-success h-100 d-flex flex-column justify-content-center align-items-center">
+                        <i class="fa-solid fa-circle-check fs-1 mb-2"></i>
+                        <h4 class="fw-bold m-0 text-dark">${month}</h4>
+                        <span class="small fw-bold mt-2 d-block">📂 Open Folder</span>
+                    </a>`;
+            } else {
+                alert("Error: " + response.error);
+                resetBillingCard(cardElement, month);
+            }
+        })
+        .withFailureHandler((error) => {
+            alert("Execution failed: " + error);
+            resetBillingCard(cardElement, month);
+        })
+        .processMonthInvoice(month);
+    } else {
+        alert("GAS backend disconnected. Please run inside Google Apps Script environment.");
+        resetBillingCard(cardElement, month);
+    }
+}
+
+function resetBillingCard(cardElement, month) {
+    cardElement.classList.remove('loading', 'processed');
+    cardElement.innerHTML = `
+        <h4 class="fw-bold m-0 text-primary">${month}</h4>
+        <span class="small opacity-75 mt-2 d-block fw-bold"><i class="fa-solid fa-wand-magic-sparkles me-1"></i> Ready to generate</span>
+    `;
+}
+
+// Ensure cards are generated when DOM is ready
+document.addEventListener('DOMContentLoaded', initializeBillingCards);
