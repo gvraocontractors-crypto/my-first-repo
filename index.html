@@ -52,7 +52,7 @@
                 </div>
                 <div class="d-flex align-items-center gap-3">
                     <span id="syncStatus" class="small fw-bold text-muted"><i class="fa-solid fa-cloud"></i> Synced</span>
-                    <button class="btn btn-light rounded-circle shadow-sm" style="width: 40px; height: 40px;" onclick="toggleTheme()" title="Toggle Theme">
+                    <button class="btn btn-light rounded-circle shadow-sm border" style="width: 40px; height: 40px;" onclick="toggleTheme()" title="Toggle Theme">
                         <i class="fa-solid fa-circle-half-stroke"></i>
                     </button>
                 </div>
@@ -78,11 +78,11 @@
                         <div class="row g-4 mb-5">
                             <div class="col-12 col-md-4">
                                 <label class="form-label fw-bold text-muted small text-uppercase">Date <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control form-control-lg bg-light border-0" id="date" required>
+                                <input type="date" class="form-control form-control-lg" id="date" required>
                             </div>
                             <div class="col-12 col-md-4">
                                 <label class="form-label fw-bold text-muted small text-uppercase">Company <span class="text-danger">*</span></label>
-                                <select class="form-select form-select-lg bg-light border-0" id="company" required>
+                                <select class="form-select form-select-lg" id="company" required>
                                     <option value="" disabled selected>Select Company...</option>
                                     <option value="GVR Contractors">GVR Contractors</option>
                                     <option value="KRiyatech">KRiyatech</option>
@@ -90,7 +90,7 @@
                             </div>
                             <div class="col-12 col-md-4">
                                 <label class="form-label fw-bold text-muted small text-uppercase">Entered By <span class="text-danger">*</span></label>
-                                <select class="form-select form-select-lg bg-light border-0" id="enteredBy" required>
+                                <select class="form-select form-select-lg" id="enteredBy" required>
                                     <option value="" disabled selected>Select Partner...</option>
                                     <option value="Gopinath">Gopinath</option>
                                     <option value="Satish">Satish</option>
@@ -100,13 +100,13 @@
                             
                             <div class="col-12 col-md-5">
                                 <label class="form-label fw-bold text-muted small text-uppercase">Project / Site <span class="text-danger">*</span></label>
-                                <select class="form-select form-select-lg bg-light border-0" id="project" required>
+                                <select class="form-select form-select-lg" id="project" required>
                                     <option value="" disabled selected>Loading Projects...</option>
                                 </select>
                             </div>
                             <div class="col-12 col-md-7">
                                 <label class="form-label fw-bold text-muted small text-uppercase">Description <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-lg bg-light border-0" id="description" placeholder="What was this expense for?" required>
+                                <input type="text" class="form-control form-control-lg" id="description" placeholder="What was this expense for?" required>
                             </div>
                         </div>
 
@@ -114,11 +114,11 @@
                         <div class="row g-4">
                             <div class="col-12 col-md-3">
                                 <label class="form-label fw-bold text-muted small text-uppercase">Amount (₹) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control form-control-lg bg-light border-0 fw-bold text-primary" id="amount" placeholder="0.00" required>
+                                <input type="number" class="form-control form-control-lg fw-bold text-primary" id="amount" placeholder="0.00" required>
                             </div>
                             <div class="col-12 col-md-3">
                                 <label class="form-label fw-bold text-muted small text-uppercase">Payment Mode <span class="text-danger">*</span></label>
-                                <select class="form-select form-select-lg bg-light border-0" id="paymentMode" required>
+                                <select class="form-select form-select-lg" id="paymentMode" required>
                                     <option value="Bank Transfer">Bank Transfer</option>
                                     <option value="UPI">UPI</option>
                                     <option value="Cash">Cash</option>
@@ -126,11 +126,11 @@
                             </div>
                             <div class="col-12 col-md-3">
                                 <label class="form-label fw-bold text-muted small text-uppercase">Transaction ID</label>
-                                <input type="text" class="form-control form-control-lg bg-light border-0" id="transactionId" placeholder="Optional">
+                                <input type="text" class="form-control form-control-lg" id="transactionId" placeholder="Optional">
                             </div>
                             <div class="col-12 col-md-3">
                                 <label class="form-label fw-bold text-muted small text-uppercase">Upload Bill</label>
-                                <input type="file" class="form-control form-control-lg bg-light border-0" id="billFile" accept="image/*,.pdf">
+                                <input type="file" class="form-control form-control-lg" id="billFile" accept="image/*,.pdf">
                             </div>
                         </div>
                         
@@ -170,21 +170,21 @@
                 <div class="row g-3">
                     <div class="col-6 col-md-2">
                         <label class="form-label text-muted small fw-bold text-uppercase mb-1">Start Date</label>
-                        <input type="date" class="form-control bg-light border-0" id="filterStartDate" onchange="applyFilters()">
+                        <input type="date" class="form-control" id="filterStartDate" onchange="applyFilters()">
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label text-muted small fw-bold text-uppercase mb-1">End Date</label>
-                        <input type="date" class="form-control bg-light border-0" id="filterEndDate" onchange="applyFilters()">
+                        <input type="date" class="form-control" id="filterEndDate" onchange="applyFilters()">
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label text-muted small fw-bold text-uppercase mb-1">Month</label>
-                        <select class="form-select bg-light border-0" id="filterMonthYear" onchange="applyFilters()">
+                        <select class="form-select" id="filterMonthYear" onchange="applyFilters()">
                             <option value="All">All Months</option>
                         </select>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label text-muted small fw-bold text-uppercase mb-1">Company</label>
-                        <select class="form-select bg-light border-0" id="filterCompany" onchange="applyFilters()">
+                        <select class="form-select" id="filterCompany" onchange="applyFilters()">
                             <option value="All">All Companies</option>
                             <option value="GVR Contractors">GVR Contractors</option>
                             <option value="KRiyatech">KRiyatech</option>
@@ -192,13 +192,13 @@
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label text-muted small fw-bold text-uppercase mb-1">Project</label>
-                        <select class="form-select bg-light border-0" id="filterProject" onchange="applyFilters()">
+                        <select class="form-select" id="filterProject" onchange="applyFilters()">
                             <option value="All">All Projects</option>
                         </select>
                     </div>
                     <div class="col-6 col-md-2">
                         <label class="form-label text-muted small fw-bold text-uppercase mb-1">User</label>
-                        <select class="form-select bg-light border-0" id="filterUser" onchange="applyFilters()">
+                        <select class="form-select" id="filterUser" onchange="applyFilters()">
                             <option value="All">All</option>
                         </select>
                     </div>
@@ -268,7 +268,7 @@
                             <form id="projectForm">
                                 <div class="mb-4">
                                     <label class="form-label text-muted fw-bold small text-uppercase">Project / Site Name <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control form-control-lg bg-light border-0" id="newProjectName" placeholder="e.g. Hyderabad Phase 2" required>
+                                    <input type="text" class="form-control form-control-lg" id="newProjectName" placeholder="e.g. Hyderabad Phase 2" required>
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-3 shadow-sm" id="submitProjectBtn">
                                     <i class="fa-solid fa-plus me-2"></i> Save Project
@@ -313,17 +313,17 @@
                     <form id="editExpenseForm">
                         <input type="hidden" id="editExpenseId">
                         <div class="row g-3">
-                            <div class="col-md-4"><label class="form-label small fw-bold text-muted text-uppercase">Date</label><input type="date" class="form-control bg-light border-0" id="editDate" required></div>
+                            <div class="col-md-4"><label class="form-label small fw-bold text-muted text-uppercase">Date</label><input type="date" class="form-control" id="editDate" required></div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-bold text-muted text-uppercase">Company</label>
-                                <select class="form-select bg-light border-0" id="editCompany" required>
+                                <select class="form-select" id="editCompany" required>
                                     <option value="GVR Contractors">GVR Contractors</option>
                                     <option value="KRiyatech">KRiyatech</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-bold text-muted text-uppercase">Entered By</label>
-                                <select class="form-select bg-light border-0" id="editEnteredBy" required>
+                                <select class="form-select" id="editEnteredBy" required>
                                     <option value="Gopinath">Gopinath</option>
                                     <option value="Satish">Satish</option>
                                     <option value="Partner 3">Partner 3</option>
@@ -331,24 +331,24 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold text-muted text-uppercase">Project</label>
-                                <select class="form-select bg-light border-0" id="editProject" required></select>
+                                <select class="form-select" id="editProject" required></select>
                             </div>
-                            <div class="col-md-6"><label class="form-label small fw-bold text-muted text-uppercase">Description</label><input type="text" class="form-control bg-light border-0" id="editDescription" required></div>
-                            <div class="col-md-4"><label class="form-label small fw-bold text-muted text-uppercase">Amount (₹)</label><input type="number" class="form-control bg-light border-0 fw-bold text-primary" id="editAmount" required></div>
+                            <div class="col-md-6"><label class="form-label small fw-bold text-muted text-uppercase">Description</label><input type="text" class="form-control" id="editDescription" required></div>
+                            <div class="col-md-4"><label class="form-label small fw-bold text-muted text-uppercase">Amount (₹)</label><input type="number" class="form-control fw-bold text-primary" id="editAmount" required></div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-bold text-muted text-uppercase">Payment Mode</label>
-                                <select class="form-select bg-light border-0" id="editPaymentMode" required>
+                                <select class="form-select" id="editPaymentMode" required>
                                     <option value="Bank Transfer">Bank Transfer</option><option value="UPI">UPI</option><option value="Cash">Cash</option>
                                 </select>
                             </div>
-                            <div class="col-md-4"><label class="form-label small fw-bold text-muted text-uppercase">Transaction ID</label><input type="text" class="form-control bg-light border-0" id="editTransactionId"></div>
+                            <div class="col-md-4"><label class="form-label small fw-bold text-muted text-uppercase">Transaction ID</label><input type="text" class="form-control" id="editTransactionId"></div>
                             <div class="col-12 mt-4">
                                 <label class="form-label small fw-bold text-warning text-uppercase"><i class="fa-solid fa-triangle-exclamation me-1"></i> Replace Bill (Leave blank to keep old bill)</label>
-                                <input type="file" class="form-control bg-light border-0" id="editBillFile" accept="image/*,.pdf">
+                                <input type="file" class="form-control" id="editBillFile" accept="image/*,.pdf">
                             </div>
                         </div>
                         <div class="mt-5 text-end">
-                            <button type="button" class="btn btn-light px-4 me-2 rounded-3" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-light px-4 me-2 rounded-3 border" data-bs-dismiss="modal">Cancel</button>
                             <button type="submit" class="btn btn-primary px-4 rounded-3 shadow-sm" id="saveEditExpenseBtn">Save Changes</button>
                         </div>
                     </form>
@@ -370,10 +370,10 @@
                         <input type="hidden" id="editOldProjectName">
                         <div class="mb-4">
                             <label class="form-label small fw-bold text-muted text-uppercase">Project Name</label>
-                            <input type="text" class="form-control form-control-lg bg-light border-0" id="editNewProjectName" required>
+                            <input type="text" class="form-control form-control-lg" id="editNewProjectName" required>
                         </div>
                         <div class="text-end mt-4">
-                            <button type="button" class="btn btn-light px-4 me-2 rounded-3" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-light px-4 me-2 rounded-3 border" data-bs-dismiss="modal">Cancel</button>
                             <button type="submit" class="btn btn-primary px-4 rounded-3 shadow-sm" id="saveEditProjectBtn">Update Name</button>
                         </div>
                     </form>
@@ -393,7 +393,7 @@
                 <div class="modal-body p-4">
                     <p class="mb-4 text-dark">Are you sure you want to generate the ONGC invoice and merge all field documents for <strong id="modalMonthText" class="text-primary fs-5"></strong>?</p>
                     <div class="text-end mt-4">
-                        <button type="button" class="btn btn-light px-4 me-2 rounded-3" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-light px-4 me-2 rounded-3 border" data-bs-dismiss="modal">Cancel</button>
                         <button type="button" class="btn btn-primary px-4 rounded-3 shadow-sm" onclick="executeGeneration()">Generate Now</button>
                     </div>
                 </div>
